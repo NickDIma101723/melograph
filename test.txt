@@ -1,1 +1,5 @@
 Werk op je eigen branch
+
+git checkout main
+git pull origin main       
+git checkout -b feature/login
