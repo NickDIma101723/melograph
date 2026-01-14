@@ -1,0 +1,243 @@
+@use '../abstracts/variables' as *;
+// Side Navigation
+.hero__side-nav {
+  position: absolute;
+  right: 40px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  pointer-events: auto;
+
+  &-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    opacity: 0.3;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    
+    @media (max-width: 768px) {
+        gap: 8px; 
+    }
+    
+    &:hover {
+      opacity: 0.6;
+    }
+    
+    &.active {
+      opacity: 1;
+      transform: translateX(-10px);
+    }
+  }
+
+  &-line {
+    width: 2rem;
+    height: 1px;
+    background: #fff;
+    transition: width 0.4s ease;
+    
+    .active & {
+      width: 4rem;
+    }
+
+    @media (max-width: 768px) {
+      width: 15px; // Shorter lines on mobile
+      
+      .active & {
+        width: 30px;
+      }
+    }
+  }
+
+  &-number {
+    font-family: var(--font-geist-mono);
+    font-size: 0.85rem;
+    font-weight: 400;
+
+    @media (max-width: 768px) {
+      font-size: 0.7rem;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    display: none !important;
+  }
+}
+
+// Hero Section Styles
+.hero {
+  position: fixed; // Fixed prevents scrolling completely
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100%; // Fallback
+  height: 100dvh; 
+  width: 100%;
+  width: 100vw;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background-color: #000;
+  z-index: 10;
+  
+  // Mobile fix for bounce/drag
+  touch-action: none;
+  overscroll-behavior: none;
+  
+  &__video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+    opacity: 0.6;
+    filter: grayscale(100%) contrast(1.2); // Industrial look
+    transition: all 0.5s ease;
+  }
+
+  // Grain Overlay
+  &__grain {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  }
+
+  &__overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.8) 100%);
+    z-index: 2;
+  }
+
+  &__content {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    mix-blend-mode: difference; // The magic sauce
+    pointer-events: none; // Let clicks pass through to video if needed
+    
+    @media (max-width: 768px) {
+      padding: 0 1rem;
+    }
+  }
+
+  &__title-massive {
+    font-size: 18vw;
+    font-weight: 900;
+    line-height: 0.8;
+    letter-spacing: -0.05em;
+    color: #fff;
+    text-transform: uppercase;
+    text-align: center;
+    white-space: nowrap;
+
+    @media (max-width: 768px) {
+      display: none;
+    }
+    
+    span {
+      display: block;
+      
+      &.outline {
+        color: transparent;
+        -webkit-text-stroke: 2px #fff;
+        opacity: 0.5;
+      }
+    }
+  }
+
+  &__subtitle {
+    margin-top: 2rem;
+
+    @media (max-width: 768px) {
+      font-size: 0.8rem;
+      letter-spacing: 0.2em;
+      text-align: center;
+      margin-top: 1.5rem;
+    }
+    
+    text-transform: uppercase;
+    color: #fff;
+    opacity: 0.8;
+  }
+}
+
+
+// YouTube Background Styles
+.hero__video-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  animation: fadeIn 2s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.hero__video-iframe {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100vw;
+  height: 100vh;
+  transform: translate(-50%, -50%) scale(1.35);
+
+  // Force 16:9 aspect ratio coverage
+  @media (min-aspect-ratio: 16/9) {
+    height: 56.25vw;
+  }
+  @media (max-aspect-ratio: 16/9) {
+    width: 177.78dvh;
+  }
+
+  // Mobile Overrides (MUST be last)
+  @media (max-width: 768px) {
+    // Aggressive coverage for mobile portrait
+    width: 177.78vh !important; // Match aspect ratio width logic but force it
+    height: 120vh !important;   // Force extra height to prevent bottom gap
+    min-height: 120dvh;
+    // slightly negative margin to pull it up and ensure top is covered too if needed, 
+    // but center transform handles it.
+    transform: translate(-50%, -50%) scale(1.4) !important; 
+  }
+  
+  iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+}
+
+
+
