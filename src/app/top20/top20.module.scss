@@ -1,0 +1,348 @@
+// MELOGRAPH TOP 20 - AGGRESSIVE EDITORIAL STYLE
+
+.page {
+  background-color: #050505;
+  color: #fff;
+  font-family: var(--font-geist-sans);
+  
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+}
+
+// BACKGROUND EFFECTS
+.noiseOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  pointer-events: none;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+.gridLines {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-size: 50% 100vh;
+  background-image: linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px);
+  pointer-events: none;
+}
+
+// LIST SECTION
+.listSection {
+  width: 40%;
+  height: 100%;
+  overflow-y: auto;
+  z-index: 100; /* Increased Z-Index to sit above potentially lingering effects */
+  position: relative;
+  padding: 8rem 2rem 4rem 4rem;
+  border-right: 1px solid rgba(255,255,255,0.1);
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(10px);
+  pointer-events: auto; /* Force pointer events */
+  overscroll-behavior: contain; /* Prevent scroll chaining */
+  touch-action: pan-y; /* Optimize for touch */
+  
+  // Scrollbar Styling
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.3) transparent;
+  
+  &::-webkit-scrollbar {
+    display: block; // Show scrollbar
+    width: 4px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(255,255,255,0.3);
+    border-radius: 4px;
+    
+    &:hover {
+      background-color: rgba(255,255,255,0.5);
+    }
+  }
+}
+
+.header {
+  margin-bottom: 2rem;
+  
+  h1 {
+    font-family: var(--font-geist-mono);
+    font-size: 3rem;
+    font-weight: 700;
+    letter-spacing: -2px;
+    text-transform: uppercase;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+  
+  p {
+    color: rgba(255,255,255,0.85); /* Increased for readability */
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: var(--font-geist-mono);
+  }
+}
+
+.trackItem {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.5rem 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  opacity: 0.6;
+  
+  &:hover {
+    opacity: 0.8;
+    background: rgba(255,255,255,0.02);
+  }
+  
+  &.active {
+    opacity: 1;
+    background: rgba(255,255,255,0.05);
+    border-left: 2px solid #fff;
+    padding-left: 2rem; /* Indent on active */
+  }
+}
+
+.rank {
+  font-family: var(--font-geist-mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.3);
+  width: 2.5rem;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.3s ease;
+}
+
+.trackItem.active .rank {
+  color: #fff;
+  text-shadow: 0 0 10px rgba(255,255,255,0.5);
+}
+
+.playingIndicator {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+  margin-left: auto; // Push to right
+}
+
+.bar {
+  width: 3px;
+  background: #fff;
+  animation: eq 0.6s infinite ease-in-out alternate;
+  
+  &:nth-child(1) { height: 60%; animation-delay: 0s; }
+  &:nth-child(2) { height: 100%; animation-delay: 0.15s; }
+  &:nth-child(3) { height: 40%; animation-delay: 0.3s; }
+}
+
+@keyframes eq {
+  0% { height: 20%; opacity: 0.5; }
+  100% { height: 100%; opacity: 1; }
+}
+
+.trackInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.trackName {
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+}
+
+.artistName {
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.5);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+// PREVIEW/DETAILS SECTION
+.previewSection {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  
+  // Dynamic Background Backdrop
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -20%; // Oversize it to avoid blurry edges showing
+    background-image: var(--bg-image);
+    background-size: cover;
+    background-position: center;
+    filter: blur(80px) brightness(0.4) saturate(1.5);
+    opacity: 0.6;
+    transition: background-image 0.8s ease-in-out;
+    z-index: 0;
+  }
+}
+
+.bigRank {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-playfair); /* Editorial Font */
+  font-size: 40rem;
+  font-weight: 900;
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(255,255,255,0.05); /* Subtle outline */
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+.songInfo {
+  position: absolute;
+  bottom: 8rem;
+  left: 4rem;
+  z-index: 20;
+  max-width: 50%;
+  pointer-events: none;
+  mix-blend-mode: difference; /* Creates cool contrast over image/bg */
+}
+
+.bigTitle {
+  font-family: var(--font-playfair);
+  font-size: 4rem;
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: -2px;
+  color: #fff;
+  margin-bottom: 1.5rem; /* Increased spacing */
+  text-transform: uppercase;
+}
+
+.bigArtist {
+  font-family: var(--font-geist-mono);
+  font-size: 1.2rem;
+  font-weight: 400;
+  letter-spacing: 4px;
+  color: rgba(255,255,255,0.8);
+  text-transform: uppercase;
+}
+
+.artworkContainer {
+  position: relative;
+  width: 55vh;
+  height: 55vh;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  perspective: 1000px;
+  z-index: 5; // Above backdrop
+  
+  // Reflection underneath
+  -webkit-box-reflect: below 0px linear-gradient(to bottom, rgba(0,0,0,0.0), rgba(0,0,0,0.4));
+}
+
+.artwork {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.1s ease-out;
+}
+
+.metaOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 2rem;
+  background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
+  transform: translateY(100%);
+  transition: transform 0.4s ease;
+  
+  h2 {
+    font-family: var(--font-geist-mono);
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+  }
+}
+
+.artworkContainer:hover .metaOverlay {
+  transform: translateY(0);
+}
+
+.controls {
+  position: absolute;
+  bottom: 3rem;
+  right: 4rem;
+  display: flex;
+  gap: 1rem;
+  z-index: 20;
+}
+
+.playWrapper {
+  position: relative;
+  width: 6rem;
+  height: 6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.progressRing {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.progressRingBg {
+  stroke: rgba(255, 255, 255, 0.1);
+}
+
+.progressRingFg {
+  stroke: #fff;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.1s linear;
+  filter: drop-shadow(0 0 4px rgba(255,255,255,0.8));
+}
+
+.playButton {
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 50%;
+  border: none;
+  background: #fff;
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  z-index: 20;
+
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}

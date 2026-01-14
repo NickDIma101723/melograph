@@ -1,0 +1,901 @@
+@use '../abstracts/variables' as *;
+// Music Info Card
+@keyframes sound {
+  0% { height: 3px; }
+  100% { height: 100%; }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.music-card {
+  position: absolute; // Changed from fixed to avoid stacking context issues
+  bottom: 0; // Stick to bottom of container
+  right: 0;
+  margin: 1.5rem; // Use margin for spacing on desktop
+  width: 420px;
+  max-width: calc(100vw - 2rem);
+  background: var(--card-bg, #D8C5E5);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: calc(1rem * 0.75);
+  padding: calc(1rem * 0.75);
+  z-index: 100;
+
+  // Custom Arrow Cursor - Simplified for build stability
+  cursor: pointer; // Also defined below but keeping for structure if needed
+  transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: calc(1rem * 0.75);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  animation: slideIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+
+  @media (max-width: 1024px) {
+    // --- Dynamic Island Mobile Style ---
+    position: fixed;
+    bottom: auto; // Reset bottom
+    top: 15px; // Moved to top (below navbar area to avoid conflict)
+    
+    // Centering without transform (avoids Framer Motion conflict)
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    
+    width: min(210px, 90%); // Standard width to ensure separating space exists
+    min-width: 0; 
+    max-width: none;
+    height: 48px; // Reduced height
+    
+    // Dynamic Island Appearance
+    background: #000000;
+    color: #fff;
+    border-radius: 24px; 
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(20px);
+    
+    // GRID LAYOUT (The "Different Layout")
+    display: grid !important;
+    grid-template-columns: 36px 1fr auto !important; // Icon | Text | Waveform
+    align-items: center !important;
+    padding: 4px; 
+    padding-right: 16px; 
+    gap: 8px 8px; // Explicit row/col gap
+    
+    // Reset Flex props
+    flex-wrap: nowrap !important;
+    grid-template-rows: none !important;
+    
+    // Transition for Expansion - removed transforms
+    will-change: width, height, top, border-radius, background-color, transform;
+    transition: 
+       width 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+       height 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+       top 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+       border-radius 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+       background-color 0.4s ease,
+       padding 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+       gap 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+       grid-template-columns 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+       transform 0s; // Instant transform change is handled by logic
+       
+    z-index: 9999 !important; // Force on top
+
+    // Override Desktop Animation
+    animation: none !important;
+
+    * {
+        position: relative; // Force relative positioning on children to keep them in flow (unless absolute overridden below)
+    }
+    opacity: 1 !important; // Ensure visible even if initial animation hasn't fired
+    transform: none !important; // CSS override for Framer Motion
+
+    &:hover {
+        transform: scale(1.02) !important; // Use !important to override framer
+        box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+        background: #000;
+        border-color: rgba(255,255,255,0.2);
+    }
+    
+    // --- Collapsed Player Controls (Ghost Fix) ---
+    .music-card__player-controls {
+        display: none; 
+    }
+
+    // --- Collapsed Artwork ---
+    .music-card__artwork {
+        width: 36px !important; // Matched to new grid
+        height: 36px !important;
+        border-radius: 50%; // Circle
+        margin: 0;
+        z-index: 2;
+        
+        img {
+            border-radius: 50%;
+        }
+        
+        // Hide desktop overlay
+        .music-card__overlay { display: none; }
+    }
+    
+    // --- Collapsed Content ---
+    .music-card__content {
+       display: contents !important; // Unwrap content container to let Grid take over
+       
+       // Explicitly hide header container
+       .music-card__header {
+           display: none !important;
+       }
+
+       .music-card__info {
+            grid-column: 2; // Middle column
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            min-width: 0; 
+            width: 100%;
+       }
+       
+       // Hide unnecessary desktop info
+       .music-card__label, 
+       .music-card__year, 
+       .music-card__album,
+       .music-card__genre {
+           display: none;
+       }
+       
+       // Repurpose Footer for Waveform only
+       .music-card__footer {
+           grid-column: 3; // Right column
+           position: relative !important;
+           right: auto;
+           top: auto;
+           transform: none !important;
+           margin: 0 !important; // NO MARGIN
+           width: auto;
+           flex-shrink: 0;
+           display: flex;
+           align-items: center;
+           justify-self: end; // Force to right side of its column
+           
+           .music-card__genre { display: none; }
+           .music-card__waveform {
+               display: flex;
+               gap: 2px; // Slightly tighter gap
+               height: 12px; // Reduced height
+               align-items: center;
+               
+               span {
+                   width: 3px;
+                   background: #22c55e; 
+                   animation: sound 1s ease-in-out infinite alternate;
+                   
+                   &:nth-child(1) { height: 60%; animation-delay: 0s; }
+                   &:nth-child(2) { height: 100%; animation-delay: 0.1s; }
+                   &:nth-child(3) { height: 50%; animation-delay: 0.2s; }
+                   &:nth-child(4) { height: 80%; animation-delay: 0.3s; }
+               }
+           }
+       }
+       
+       .music-card__song {
+           color: #fff;
+           font-size: 11px; // Reduced from 13px
+           font-weight: 600;
+           line-height: 1.2;
+           opacity: 1;
+           animation: none;
+           width: 100%; // Fill container
+           max-width: none; // Let flex handle it
+       }
+       
+       .music-card__artist {
+           color: rgba(255,255,255,0.7);
+           font-size: 9px; // Reduced from 11px
+           opacity: 1;
+           animation: none;
+           transform: none !important;
+           width: 100%;
+       }
+    }
+  }
+
+  // Hover transitions
+  &:hover {
+    transform: translateY(-5px) scale(1.02) rotate(1deg);
+    background: color-mix(in srgb, var(--card-bg, #D8C5E5), white 10%);
+    border-color: rgba(0, 0, 0, 0.2);
+    box-shadow: 0 40px 80px rgba(0, 0, 0, 0.3);
+  }
+
+  &.hidden {
+    opacity: 0;
+    transform: scale(0.8) translateY(50px);
+  }
+
+  // Removed unused keyframes that were conflicting
+  // @keyframes slideInMobile ...
+
+  &__artwork {
+    width: 150px;
+    height: 150px;
+    border-radius: calc(1rem * 0.75);
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    grid-column: 1;
+    grid-row: 1;
+
+    @media (max-width: 1024px) {
+      width: 40px !important;
+      height: 40px !important;
+      margin-left: 0; 
+    }
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .music-card:hover & {
+      transform: scale(1.05) rotate(-2deg);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.25);
+      
+      img {
+        transform: scale(1.1);
+      }
+    }
+  }
+
+  &__overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    backdrop-filter: blur(2px);
+    
+    .music-card:hover & {
+      opacity: 1;
+    }
+  }
+
+  &__play-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #fff;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #000;
+    cursor: pointer;
+    transform: scale(0.5) rotate(-180deg);
+    opacity: 0;
+    transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+
+    svg {
+      width: 24px;
+      height: 24px;
+      margin-left: 2px; // Optical centering
+    }
+
+    .music-card:hover & {
+      transform: scale(1) rotate(0deg);
+      opacity: 1;
+    }
+    
+    @media (max-width: 1024px) {
+        transform: scale(1) rotate(0deg);
+        opacity: 1;
+        background: rgba(255, 255, 255, 0.8);
+    }
+
+    &:hover {
+      transform: scale(1.1) !important;
+      background: #000;
+      color: #fff;
+    }
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+    grid-column: 2;
+    grid-row: 1;
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: auto;
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+
+  &__label {
+    font-family: monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    color: #000;
+    text-transform: uppercase;
+    position: relative;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 0;
+      height: 1px;
+      background: #000;
+      transition: width 0.3s ease;
+    }
+
+    .music-card:hover &::after {
+      width: 100%;
+    }
+  }
+
+  &__year {
+    font-family: monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #000;
+    border: 1.5px solid #000;
+    padding: 2px 8px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: #000;
+      color: #D8C5E5;
+    }
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  @keyframes slideUpFade {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  &__artist {
+    font-size: 1.5rem;
+    font-weight: 300;
+    color: #000;
+    margin: 0;
+    line-height: 1.1;
+    letter-spacing: 0;
+    transform-origin: left;
+    transition: transform 0.3s ease;
+    opacity: 0;
+    animation: slideUpFade 0.5s ease forwards 1s;
+
+    .music-card:hover & {
+      transform: translateX(5px);
+    }
+  }
+
+  &__song {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.9);
+    margin: 0;
+    line-height: 1.2;
+    opacity: 0;
+    animation: slideUpFade 0.5s ease forwards 1.1s;
+  }
+
+  &__album {
+    font-size: 0.85rem;
+    opacity: 0;
+    animation: slideUpFade 0.5s ease forwards 1.2s;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.6);
+    margin: 0;
+    transition: color 0.3s ease;
+
+    .music-card:hover & {
+      color: rgba(0, 0, 0, 0.8);
+    }
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0.5rem;
+  }
+
+  &__genre {
+    font-family: monospace;
+    font-size: 0.75rem;
+    color: #000;
+    font-weight: 600;
+    text-transform: uppercase;
+    border: 1.5px solid #000;
+    padding: 2px 8px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: #000;
+      color: #D8C5E5;
+    }
+  }
+
+  &__waveform {
+    display: flex;
+    gap: 3px;
+    align-items: flex-end;
+    height: 16px;
+
+    span {
+      width: 3px;
+      background: #000;
+      border-radius: 2px;
+      animation: waveform 1s ease-in-out infinite;
+      transition: height 0.2s ease;
+
+      &:nth-child(1) { height: 60%; animation-delay: 0s; }
+      &:nth-child(2) { height: 100%; animation-delay: 0.1s; }
+      &:nth-child(3) { height: 50%; animation-delay: 0.2s; }
+      &:nth-child(4) { height: 80%; animation-delay: 0.3s; }
+    }
+
+    .music-card:hover & span {
+      animation-duration: 0.5s; // Speed up on hover
+    }
+  }
+
+  // --- Mini Player Styles ---
+  &.mini-player-active {
+    grid-template-columns: auto 1fr;
+    padding: 1.5rem;
+    gap: 1.25rem; // Reduced gap for tighter layout
+    background: var(--card-bg, #D8C5E5);
+    // width: 380px; // Removed to keep consistent size
+    max-width: calc(100vw - 2rem);
+
+    @media (max-width: 1024px) {
+      // --- EXPANDED MOBILE PLAYER (Widget Style) ---
+      display: grid !important;
+      grid-template-columns: 64px 1fr 0px !important; // Artwork | Content | Hidden Col
+      grid-template-rows: auto auto auto auto !important; // Header | Progress | Time | Controls
+      
+      // Position - Notification/Widget style
+      position: fixed;
+      top: 15px !important; // Match dynamic island top
+      
+      // Centering Strategy (Matches Dynamic Island)
+      left: 0 !important;
+      right: 0 !important;
+      margin: 0 auto !important;
+      transform: none !important;
+
+      bottom: auto !important;
+      
+      // Compact Size
+      width: 90vw !important; 
+      max-width: 360px; 
+      height: 240px !important; // Compact widget height
+      min-height: 200px; 
+      max-height: none;
+      
+      // Styling
+      background: #000 !important;
+      border-radius: 28px !important;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+      padding: 20px !important;
+      gap: 0px 16px !important; 
+      z-index: 10000 !important;
+      
+      &:hover {
+         transform: none !important; 
+         background: #000 !important;
+      }
+
+      // 1. Artwork (Top Left)
+      .music-card__artwork {
+        width: 64px !important;
+        height: 64px !important;
+        border-radius: 12px !important;
+        margin: 0 !important;
+        grid-column: 1;
+        grid-row: 1;
+        box-shadow: none;
+        
+        img { border-radius: 12px !important; }
+      }
+      
+      // Unwrap controls to layout children in grid
+      .music-card__player-controls {
+          display: contents !important;
+          
+          // 2. Header (Title/Artist) - Top Right
+          .music-card__player-header {
+              grid-column: 2;
+              grid-row: 1;
+              margin: 0 0 0 16px !important; // Left margin from artwork
+              align-items: flex-start;
+              justify-content: center;
+              flex-direction: column;
+              text-align: left;
+              position: relative;
+              
+              .music-card__player-info {
+                  width: 100%;
+                  padding-right: 30px; // Space for close button
+              }
+
+              // Minimize Button (Top Right absolute)
+              .music-card__back-btn {
+                  position: absolute;
+                  top: -5px;
+                  right: 0px; // Far right of container
+                  background: rgba(255,255,255,0.15);
+                  border-radius: 50%;
+                  width: 24px;
+                  height: 24px;
+                  padding: 4px;
+                  
+                  svg { width: 100%; height: 100%; color: #fff; opacity: 0.7; }
+              }
+          }
+          
+          .music-card__player-title {
+              font-size: 1.1rem;
+              color: #fff;
+              margin-bottom: 2px;
+          }
+          
+          .music-card__player-artist {
+              font-size: 0.9rem;
+              color: rgba(255,255,255,0.6);
+          }
+          
+          // 3. Progress Bar - Row 2
+          .music-card__progress-container {
+              grid-column: 1 / -1; // Span full width
+              grid-row: 2;
+              width: 100%;
+              height: 4px;
+              background: rgba(255,255,255,0.2);
+              margin-top: 15px; // Reduced margin
+              
+              .music-card__progress-fill {
+                  background: #fff;
+              &::after { width: 10px; height: 10px; opacity: 1; }
+              }
+          }
+          
+          // 4. Time - Row 3
+          .music-card__time-display {
+             grid-column: 1 / -1;
+             grid-row: 3;
+             color: rgba(255,255,255,0.4);
+             margin-top: 6px; // Reduced Margin
+             margin-bottom: 0px;
+             font-size: 10px;
+             
+             .current { color: rgba(255,255,255,0.8); }
+          }
+
+          // 5. Controls - Row 4
+          .music-card__controls-row {
+              grid-column: 1 / -1;
+              grid-row: 4;
+              margin-top: 5px; // Reduced Margin drastically
+              justify-content: space-between; 
+              padding: 0 10px 0 10px; // Removed bottom padding
+              align-items: center;
+              
+              button { border: none !important; }
+              svg { color: #fff; width: 24px; height: 24px;} // Smaller icons
+              
+              .music-card__main-play-btn {
+                  width: auto; height: auto;
+                  background: transparent;
+                  color: #fff;
+                  svg { width: 32px; height: 32px; fill: #fff; } // Smaller play button
+              }
+          }
+      }
+    }
+    
+    .music-card__content {
+      display: none;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .music-card__player-controls {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+      display: flex;
+    }
+
+    .music-card__artwork {
+      width: 150px;
+      height: 150px;
+      border-radius: 8px; // Slightly smaller radius for smaller size
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1), 0 4px 8px rgba(0,0,0,0.05);
+      
+      img {
+        border-radius: 8px;
+      }
+      
+      .music-card__overlay {
+        opacity: 0;
+        pointer-events: none;
+      }
+    }
+  }
+
+  &__player-controls {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.5rem;
+    grid-column: 2;
+    grid-row: 1;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+  }
+
+  &__player-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  &__back-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #000;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+    
+    &:hover {
+      background: rgba(0,0,0,0.1);
+      transform: translateX(-2px);
+    }
+  }
+
+  &__player-info {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0;
+    width: auto;
+  }
+
+  &__player-title {
+    font-family: var(--font-geist-mono);
+    font-size: 1rem; // Reduced from 1.1rem to fit smaller card
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+    line-height: 1.2;
+    white-space: normal;
+    text-overflow: clip;
+  }
+
+  &__player-artist {
+    font-family: var(--font-geist-mono);
+    font-size: 0.75rem;
+    color: rgba(15, 23, 42, 0.6);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  &__progress-container {
+    width: 100%;
+    height: 20px; // Comfortable touch/click area
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    margin: 8px 0 4px;
+    position: relative;
+    
+    // Hover effects group
+    &:hover {
+      .music-card__progress-track {
+        height: 6px;
+        background: rgba(0,0,0,0.15);
+      }
+      
+      .music-card__progress-fill {
+        background: #000;
+        
+        &::after {
+          opacity: 1;
+          transform: translateY(-50%) scale(1);
+        }
+      }
+    }
+  }
+
+  &__progress-track {
+    width: 100%;
+    height: 4px; // Slightly taller for better visibility
+    background: rgba(0,0,0,0.08); // Softer, more subtle track
+    border-radius: 2px; // Sharper edges
+    position: relative;
+    overflow: visible; // Allow thumb to overflow
+    transition: all 0.2s ease;
+  }
+
+  &__progress-fill {
+    height: 100%;
+    background: #333; // Dark charcoal instead of stark black
+    border-radius: 2px;
+    transition: width 0.1s linear;
+    position: relative;
+    
+    // The Thumb/Handle
+    &::after {
+      content: '';
+      position: absolute;
+      right: -5px; // Center (10px width / 2)
+      top: 50%;
+      transform: translateY(-50%) scale(0); // Hidden by default
+      width: 10px; // Slightly smaller, more precise
+      height: 10px;
+      background: #fff;
+      border: 2px solid #333; // Match fill color
+      border-radius: 50%;
+      opacity: 0;
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      z-index: 10;
+    }
+  }
+
+  &__time-display {
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--font-geist-mono);
+    font-size: 10px;
+    color: rgba(15, 23, 42, 0.6);
+    font-weight: 600;
+    margin-bottom: 8px;
+    margin-top: 0;
+    
+    .current { color: #0f172a; }
+  }
+
+  &__controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: center; // Center the controls
+    gap: 1.5rem; // Reduced gap
+    margin-top: 0.5rem;
+    // Removed padding to avoid pushing elements
+  }
+
+  &__control-btn {
+    background: transparent;
+    border: 1px solid rgba(0,0,0,0.1); // Added subtle border
+    border-radius: 50%;
+    width: 44px; // Increased size
+    height: 44px; // Increased size
+    cursor: pointer;
+    color: rgba(0,0,0,0.8); // Darker icon
+    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    &:hover {
+      color: #000;
+      background: rgba(0,0,0,0.05);
+      transform: scale(1.1);
+      border-color: rgba(0,0,0,0.3);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  &__main-play-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    background: #000;
+    color: #fff;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    
+    svg {
+      width: 28px;
+      height: 28px;
+      margin-left: 0;
+    }
+
+    &:hover {
+      transform: scale(1.05);
+      background: #1a1a1a;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.25);
+    }
+    
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+
+}
+
+@keyframes waveform {
+  0%, 100% { transform: scaleY(0.5); }
+  50% { transform: scaleY(1); }
+}
+
+// Custom Cursor Styles
+// Removed custom cursor styles
+
+
+
+
+

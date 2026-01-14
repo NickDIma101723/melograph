@@ -1,0 +1,80 @@
+.c-vinyl-record {
+& {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.recordContainer {
+  position: relative;
+  width: 80%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.record {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  position: relative;
+  background: 
+    repeating-radial-gradient(
+      #111 0, 
+      #111 2px, 
+      #1c1c1c 3px, 
+      #1c1c1c 4px
+    );
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: transform;
+
+  &.playing {
+    animation: spin 1.8s linear infinite; // 33 1/3 RPM is roughly 1.8s per rotation
+  }
+}
+
+.label {
+  position: absolute;
+  width: 40%;
+  height: 40%;
+  border-radius: 50%;
+  overflow: hidden;
+  z-index: 2;
+  box-shadow: 0 0 0 2px #1a1a1a;
+}
+
+.tonearm {
+  position: absolute;
+  top: -10%;
+  right: 0%;
+  width: 40%;
+  height: 80%;
+  z-index: 10;
+  pointer-events: none;
+  transform-origin: 73% 13%; // Coordinates from the SVG circle (146/200, 52/400)
+  transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: rotate(0deg);
+
+  &.playing {
+    transform: rotate(25deg);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+}

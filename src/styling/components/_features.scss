@@ -1,0 +1,44 @@
+@use '../abstracts/variables' as *;
+// Features Section
+.features {
+  padding: 5rem 0;
+  background: var(--background);
+  
+  h2 {
+    text-align: center;
+    font-size: 2.5rem;
+    margin-bottom: 3rem;
+    color: var(--primary);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+  }
+
+  .card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 2rem;
+    border-radius: 1rem;
+    transition: transform 0.3s ease;
+    
+    &:hover {
+      transform: translateY(-5px);
+      border-color: var(--primary);
+    }
+
+    h3 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      color: var(--foreground);
+    }
+
+    p {
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+  }
+}
+
