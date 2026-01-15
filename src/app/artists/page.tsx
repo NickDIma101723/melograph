@@ -411,8 +411,8 @@ export default function ArtistsPage() {
                       - Next Image: Moves UP and IN (y: 100% -> 0%)
                   */}
                   <motion.img 
-                    // Add timestamp to bust browser cache while we debug
-                    src={`/api/proxy-image?url=${encodeURIComponent(selectedArtist.strArtistThumb)}&cb=${Date.now()}`}
+                    // Direct URL usage to match Navbar behavior and avoid Proxy cache issues
+                    src={selectedArtist.strArtistThumb}
                     alt={selectedArtist.strArtist}
                     initial={{ 
                       y: '100%',     // Starts below the viewport (Camera hasn't reached it yet)
@@ -466,7 +466,7 @@ export default function ArtistsPage() {
             {nextArtist.strArtistThumb && (
               <motion.img 
                 key={nextArtist.idArtist} // Key ensures React treats this as a new element per artist
-                src={`/api/proxy-image?url=${encodeURIComponent(nextArtist.strArtistThumb)}&cb=${Date.now()}`}
+                src={nextArtist.strArtistThumb}
                 alt={nextArtist.strArtist}
                 initial={{ y: '100%', opacity: 0 }} // Start from bottom
                 animate={{ 

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 
-// Reusing the configuration from the frontend
+// Force dynamic to ensure fresh data on serverless deployments
+export const dynamic = 'force-dynamic';
+
 const ROSTER = [
   'Kendrick Lamar',
   'Manos', 
@@ -36,26 +36,8 @@ interface ArtistData {
     youtubeId?: string;
 }
 
-// Helper to sanitize cache keys
-const CACHE_FILE = path.join(process.cwd(), '.cache', 'artists-data.json');
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-
 export async function GET() {
-  // 1. Return Cache if available and fresh
-  try {
-    if (fs.existsSync(CACHE_FILE)) {
-      const stats = fs.statSync(CACHE_FILE);
-      const age = Date.now() - stats.mtimeMs;
-      
-      if (age < CACHE_DURATION) {
-        console.log('[ArtistsAPI] Serving from cache');
-        const cachedData = fs.readFileSync(CACHE_FILE, 'utf-8');
-        return NextResponse.json(JSON.parse(cachedData));
-      }
-    }
-  } catch(e) { /* ignore cache read errors */ }
-
-  console.log('[ArtistsAPI] Cache expired or missing, fetching fresh data...');
+  console.log('[ArtistsAPI] Fetching fresh data...');
 
   const validArtists: ArtistData[] = [];
 
@@ -124,7 +106,7 @@ export async function GET() {
                  } catch(e) { /* ignore yt */ }
             }
             
-            console.log(`[ArtistsAPI] Found: ${name} -> ${songResult.trackName} (${songResult.artworkUrl100})`);
+            console.log(`[ArtistsAPI] Found: ${name} -> ${songResult.trackName}`);
 
             validArtists.push({
                 idArtist: String(songResult.collectionId || songResult.trackId),
@@ -143,18 +125,8 @@ export async function GET() {
     }
     
     // DELAY to be nice to iTunes API (Avoid 403 Forbidden on burst)
-    await new Promise(r => setTimeout(r, 200)); 
+    await new Promise(r => setTimeout(r, 100)); 
   }
-
-  // CACHE WRITE
-
-  // CACHE WRITE
-  try {
-      if (!fs.existsSync(path.dirname(CACHE_FILE))) {
-          fs.mkdirSync(path.dirname(CACHE_FILE), { recursive: true });
-      }
-      fs.writeFileSync(CACHE_FILE, JSON.stringify(validArtists));
-  } catch (e) { console.error('Failed to write cache', e); }
 
   return NextResponse.json(validArtists);
 }
