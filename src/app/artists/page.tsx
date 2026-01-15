@@ -198,107 +198,13 @@ export default function ArtistsPage() {
   useEffect(() => {
     const fetchArtists = async () => {
       try {
-        const promises = ROSTER.map(async (name) => {
-          // CUSTOM SEARCH TERMS for specific artists to ensure hits
-          let query = name;
-          let entity = 'song'; // Use 'song' for everyone to get previewUrl
-          
-          if (name === 'Kendrick Lamar') {
-            query = 'Kendrick Lamar Not Like Us';
-            entity = 'song';
-          }
-          
-          if (name === 'Manos') {
-            query = 'Manos Baby'; // Ensure we find his hit "Baby"
-            entity = 'song'; // "Baby" might be a single/song
-          }
-          
-          if (name === 'Sombr') {
-            query = 'Sombr Back to Being Friends';
-            entity = 'song';
-          }
-
-          // Switch to iTunes Search API (Free, High Quality, Larger DB)
-          // STRATEGY: Find the canonical SONG first (to preserve the track selection user loved),
-          // THEN try to find the video for that specific song.
-          let songResult;
-          try {
-             const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=1`);
-             const data = await res.json();
-             songResult = data.results?.[0];
-          } catch(e) { /* ignore */ }
-
-          // FATAL FALLBACK: If API fails, ensure Manos still appears (User Priority)
-          if (!songResult && name === 'Manos') {
-              return {
-                 idArtist: 'manos-manual',
-                 strArtist: 'Manos',
-                 strGenre: 'Hit Single',
-                 strStyle: 'Baby',
-                 // Fallback abstract image
-                 strArtistThumb: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=1200', 
-                 strBiographyEN: '',
-                 previewUrl: undefined,
-                 isVideo: false
-              } as ArtistData;
-          }
-
-          if (!songResult) return null;
-
-          // 3. Try to upgrade to Video (if available for this song)
-          let videoUrl = undefined;
-          let isVideo = false;
-          try {
-             // Search specifically for "Artist Name + Track Name" in videos to get the EXACT match
-             const videoQuery = `${songResult.artistName} ${songResult.trackName}`;
-             const resVideo = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(videoQuery)}&entity=musicVideo&limit=1`);
-             const dataVideo = await resVideo.json();
-             const videoResult = dataVideo.results?.[0];
-
-             // STRICT VALIDATION: Ensure the video artist matches the song artist
-             if (videoResult && videoResult.artistName.toLowerCase().includes(songResult.artistName.toLowerCase())) {
-                 videoUrl = videoResult.previewUrl;
-                 isVideo = true;
-             }
-          } catch(e) { /* ignore */ }
-
-          // 4. If no iTunes video, try YouTube Search (Server-side via our new API)
-          let youtubeId = undefined;
-          
-          // Force YouTube for Manos and Sombr (since iTunes videos might be scarce or wrong)
-          if ((!isVideo && songResult) || (name.toLowerCase().includes('sombr') || name.toLowerCase().includes('manos'))) {
-            try {
-              const ytQuery = `${songResult?.artistName || name} ${songResult?.trackName || ''} official music video`;
-              const resYT = await fetch(`/api/youtube?q=${encodeURIComponent(ytQuery)}`);
-              if (resYT.ok) {
-                 const dataYT = await resYT.json();
-                 if (dataYT && dataYT.videoId) {
-                    youtubeId = dataYT.videoId;
-                    // If we found a YouTube specific ID, we might prefer it over "audio only" iTunes
-                    isVideo = false; // We use the YouTube embed instead
-                 }
-              }
-            } catch(e) { console.error('YT Search failed', e); }
-          }
-
-          // Transform iTunes data using SONG metadata (for consistency) but VIDEO media (if found)
-          return {
-            idArtist: String(songResult.collectionId || songResult.trackId),
-            strArtist: name, // Use clean roster name
-            strGenre: songResult.primaryGenreName || 'Music',
-            strStyle: songResult.trackName, // Show Song Name
-            // Upscale the artwork from 100x100 to 1200x1200 (Highest Res)
-            strArtistThumb: songResult.artworkUrl100?.replace('100x100bb', '1200x1200bb'),
-            previewUrl: videoUrl || songResult.previewUrl,
-            isVideo: isVideo,
-            youtubeId: youtubeId,
-            strBiographyEN: '',
-          } as ArtistData;
-        });
-
-        const results = await Promise.all(promises);
-        const validArtists = results.filter((a): a is ArtistData => !!a);
-        setArtists(validArtists);
+        const res = await fetch('/api/artists-data');
+        if (res.ok) {
+            const data = await res.json();
+            setArtists(data);
+        } else {
+            console.error("Failed to load artists data");
+        }
       } catch (error) {
         console.error('Error fetching artists:', error);
       } finally {
@@ -505,7 +411,8 @@ export default function ArtistsPage() {
                       - Next Image: Moves UP and IN (y: 100% -> 0%)
                   */}
                   <motion.img 
-                    src={`/api/proxy-image?url=${encodeURIComponent(selectedArtist.strArtistThumb)}`}
+                    // Add timestamp to bust browser cache while we debug
+                    src={`/api/proxy-image?url=${encodeURIComponent(selectedArtist.strArtistThumb)}&cb=${Date.now()}`}
                     alt={selectedArtist.strArtist}
                     initial={{ 
                       y: '100%',     // Starts below the viewport (Camera hasn't reached it yet)
@@ -559,7 +466,7 @@ export default function ArtistsPage() {
             {nextArtist.strArtistThumb && (
               <motion.img 
                 key={nextArtist.idArtist} // Key ensures React treats this as a new element per artist
-                src={`/api/proxy-image?url=${encodeURIComponent(nextArtist.strArtistThumb)}`}
+                src={`/api/proxy-image?url=${encodeURIComponent(nextArtist.strArtistThumb)}&cb=${Date.now()}`}
                 alt={nextArtist.strArtist}
                 initial={{ y: '100%', opacity: 0 }} // Start from bottom
                 animate={{ 

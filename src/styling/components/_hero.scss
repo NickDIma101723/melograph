@@ -74,16 +74,10 @@
   left: 0;
   right: 0;
   bottom: 0;
-  height: 100%; // Fallback
-  height: 100dvh; 
+  // Use positioning to determine size
   width: 100%;
-  width: 100vw;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
+  height: 100%;
+  // Ensure we cover everything 
   background-color: #000;
   z-index: 10;
   
