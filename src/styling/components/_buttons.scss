@@ -1,0 +1,34 @@
+@use '../abstracts/variables' as *;
+
+.btn {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: none;
+  font-size: 1rem;
+  
+  &.btn-primary {
+    background: $primary;
+    color: white;
+    
+    &:hover {
+      background: $primary-hover;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba($primary, 0.3);
+    }
+  }
+
+  &.btn-outline {
+    background: transparent;
+    border: 2px solid white;
+    color: white;
+    
+    &:hover {
+      background: white;
+      color: $background;
+    }
+  }
+}

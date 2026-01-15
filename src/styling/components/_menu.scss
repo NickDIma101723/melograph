@@ -1,0 +1,483 @@
+@use '../abstracts/variables' as *;
+// --- Menu Overlay ---
+.menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #0f0f0f;
+  z-index: 1500;
+  opacity: 0;
+  pointer-events: none;
+  // transition: opacity 0.5s ...; // Handled by Framer Motion
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  &.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+// --- Split Menu Layout ---
+.menu-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+  }
+}
+
+.menu-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 80px;
+  background: #080808; // Deep dark background
+  position: relative;
+  z-index: 20;
+  height: 100%;
+  box-shadow: 10px 0 50px rgba(0,0,0,0.8);
+
+  // Subtle noise texture
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.1'/%3E%3C/svg%3E");
+    opacity: 0.3;
+    pointer-events: none;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 20px;
+    align-items: center;
+  }
+}
+
+.menu-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  position: relative;
+  overflow: visible;
+  z-index: 10;
+  
+  @media (max-width: 768px) {
+    display: none;
+  }
+}
+
+// --- Tracklist Styles ---
+.menu-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 40px;
+  font-family: var(--font-geist-mono);
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.2em;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 15px;
+  width: 100%;
+}
+
+.menu-tracklist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.track-item {
+  display: flex;
+  align-items: center;
+  padding: 15px 0;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.5);
+  transition: all 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  will-change: transform, opacity, padding-left;
+  
+  // Entrance Animation Setup
+  opacity: 0;
+  transform: translateX(-30px);
+
+  .menu-overlay.open & {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  // Staggered delays for entrance
+  &:nth-child(1) { transition-delay: 0.1s; }
+  &:nth-child(2) { transition-delay: 0.15s; }
+  &:nth-child(3) { transition-delay: 0.2s; }
+  &:nth-child(4) { transition-delay: 0.25s; }
+  &:nth-child(5) { transition-delay: 0.3s; }
+
+  &:hover {
+    color: #fff;
+    padding-left: 30px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+    transition-delay: 0s;
+    
+    .track-item__id { color: var(--primary); }
+    .track-item__title { letter-spacing: 2px; }
+  }
+
+  &__info {
+    display: flex;
+    align-items: baseline;
+    gap: 30px;
+  }
+
+  &__id {
+    font-family: var(--font-geist-mono);
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.3);
+    width: 30px;
+  }
+
+  &__title {
+    font-size: 3.5rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0px;
+    transition: letter-spacing 0.4s ease;
+  }
+
+  &__line {
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 0 30px;
+    position: relative;
+    top: auto;
+  }
+
+  &__time {
+    font-family: var(--font-geist-mono);
+    font-size: 0.9rem;
+    opacity: 0.5;
+    color: rgba(255, 255, 255, 0.5);
+  }
+}
+
+.menu-footer-simple {
+  margin-top: auto;
+  padding-top: 40px;
+  font-family: var(--font-geist-mono);
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.1em;
+  text-align: center;
+}
+
+
+// --- NEW BRUTALIST MENU STYLES ---
+
+.menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+  z-index: 1900; // High enough to cover content, but below Close Button (2000)
+  color: #fff;
+  display: flex;
+  overflow: hidden;
+  
+  // Override any previous styles
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+}
+
+.menu-grid {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+
+  @media (min-width: 768px) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr; // Desktop: Side by side
+  }
+}
+
+// Left Column: Navigation
+.menu-nav-col {
+  flex: 1; 
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center; // Center content horizontally on mobile
+  padding: 1.5rem;
+  position: relative;
+  
+  // Mobile: Solid background since visual is hidden
+  background: #050505;
+  background-image: 
+    radial-gradient(circle at 1px 1px, #1a1a1a 1px, transparent 0),
+    linear-gradient(to bottom, #050505 0%, #0a0a0a 100%);
+  background-size: 40px 40px, 100% 100%;
+
+  z-index: 10;
+  overflow: hidden;
+
+  @media (min-width: 768px) {
+    align-items: flex-start; // Left align on desktop
+    padding: 6rem;
+    border-right: 1px solid #333; 
+  }
+}
+
+// Right Column: Visuals
+.menu-visual-col {
+  // Mobile: Hidden
+  display: none !important;
+
+  @media (min-width: 768px) {
+    display: flex !important; 
+    position: relative;
+    height: auto; 
+    flex: 1; 
+    opacity: 1;
+    pointer-events: auto;
+    border-top: none;
+    overflow: hidden;
+    background: #000;
+  }
+}
+
+// Fullscreen visual container styles (to be applied in inline styles mainly, but helper here)
+.menu-fullscreen-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to right, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.2) 100%);
+        z-index: 1;
+    }
+}
+
+.menu-header-meta {
+  position: absolute;
+  top: 2rem;
+  left: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-family: var(--font-geist-mono);
+  font-size: 0.75rem;
+  color: #666;
+  letter-spacing: 0.1em;
+}
+
+.nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; // Tighter gap for a more "list" feel
+  
+  // Sibling Fade Effect: Focus on the hovered item
+  &:hover .nav-link-item:not(:hover) {
+    opacity: 0.2;
+    filter: blur(1px);
+    transform: scale(0.98);
+  }
+}
+
+.nav-link-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; 
+  gap: 2rem;
+  text-decoration: none;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  width: 100%; 
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  
+  // Clean align on desktop
+  @media (min-width: 768px) {
+    justify-content: flex-start; 
+  }
+  
+  &:hover {
+    transform: translateX(10px);
+    opacity: 1 !important; // Override sibling fade if somehow applied
+    filter: none !important;
+  }
+  
+  &:hover .nav-label {
+    color: #fff;
+    // Glitch/Tech effect could go here
+    text-shadow: 2px 2px 0px rgba(255, 255, 255, 0.1);
+  }
+
+  &:hover .nav-id {
+    color: var(--primary, #8b5cf6); // Use primary color
+    transform: translateX(5px);
+  }
+}
+
+.nav-id {
+  font-family: var(--font-geist-mono);
+  font-size: 0.85rem;
+  color: #444;
+  transition: all 0.3s ease;
+  width: 40px; 
+  flex-shrink: 0;
+  position: relative;
+  
+  &::before {
+     content: '//';
+     margin-right: 4px;
+     opacity: 0;
+     transition: opacity 0.3s;
+  }
+}
+
+.nav-link-item:hover .nav-id::before {
+  opacity: 1;
+}
+
+.nav-label {
+  font-size: clamp(2rem, 8vw, 6rem); // Larger, more impactful
+  font-weight: 900;
+  text-transform: uppercase;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(255,255,255,0.3); // Outline style initially
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+  transition: all 0.3s ease;
+  
+  // Fill on hover
+  .nav-link-item:hover & {
+    color: #fff;
+    -webkit-text-stroke: 0;
+  }
+}
+
+.menu-bg-text {
+  position: absolute;
+  top: 50%;
+  left: -5%;
+  transform: translateY(-50%) rotate(90deg);
+  font-size: 20vh;
+  font-weight: 900;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.03); 
+  z-index: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  letter-spacing: 0.1em;
+}
+
+.menu-footer-meta {
+  position: absolute;
+  bottom: 2rem;
+  left: 2rem;
+  right: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  font-family: var(--font-geist-mono);
+  font-size: 0.7rem;
+  color: #444;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 1.5rem;
+}
+
+.footer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  
+  a {
+    color: #666;
+    transition: color 0.2s;
+    
+    &:hover { color: #fff; }
+  }
+}
+
+.footer-label {
+  font-size: 0.6rem;
+  color: #333;
+  margin-bottom: 0.2rem;
+}
+
+.status-indicator {
+  color: #22c55e; // Green
+  display: inline-block;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+// Right Column: Visual Preview
+.menu-visual-col-deprecated-duplicate {
+  display: none; 
+}
+
+.visual-container {
+  position: absolute;
+  inset: 2rem; // Frame it
+  background: #111;
+  overflow: hidden;
+  border: 1px solid #333;
+}
+
+.shine-overlay {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent);
+  transform: skewX(-20deg);
+  animation: shine 3s infinite;
+}
+
+@keyframes shine {
+  0% { left: -100%; }
+  20% { left: 200%; }
+  100% { left: 200%; }
+}
+
+.visual-scanlines {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 2px,
+    rgba(0, 0, 0, 0.5) 3px
+  );
+  pointer-events: none;
+  z-index: 10;
+}
