@@ -1,0 +1,154 @@
+@use '../abstracts/variables' as *;
+// --- Vinyl Animation ---
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.vinyl-wrapper {
+  position: absolute;
+  width: 140vh;
+  height: 140vh;
+  top: 50%;
+  left: -15%; // Pushed more to the left (deeper into sleeve)
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 5;
+
+  @media (max-width: 768px) {
+    width: 40vh; // Significantly reduced
+    height: 40vh;
+    left: -5%;
+  }
+}
+
+.vinyl-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform: rotate(-45deg); // Start rotated back
+  transition: transform 1.8s cubic-bezier(0.2, 0.8, 0.2, 1); // Smoother, heavier feel
+  will-change: transform;
+}
+
+// Rotate to 0 when menu opens - REMOVED for Framer Motion control
+// .menu-overlay.open .vinyl-image {
+//   transform: rotate(0deg);
+// }
+
+// Hover Rotation Removed to allow continuous spin
+// .menu-container:has(.track-item:hover) .vinyl-image ...
+
+.vinyl-record {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #111;
+  background: radial-gradient(
+    circle,
+    #111 0%,
+    #111 30%,
+    #1a1a1a 31%,
+    #111 32%,
+    #1a1a1a 33%,
+    #111 34%,
+    #1a1a1a 35%,
+    #111 36%,
+    #1a1a1a 40%,
+    #111 41%,
+    #1a1a1a 42%,
+    #111 43%,
+    #1a1a1a 45%,
+    #111 46%,
+    #1a1a1a 50%,
+    #111 51%,
+    #1a1a1a 55%,
+    #111 56%,
+    #1a1a1a 60%,
+    #111 61%,
+    #1a1a1a 65%,
+    #111 66%,
+    #1a1a1a 70%,
+    #000 100%
+  );
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: spin 4s linear infinite;
+  
+  // Shine effect
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);
+    pointer-events: none;
+  }
+}
+
+.vinyl-label {
+  width: 35%;
+  height: 35%;
+  background: #eab308; // Yellow label
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border: 2px solid #000;
+  
+  // Center hole
+  &::before {
+    content: '';
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    background: #000;
+    border-radius: 50%;
+    z-index: 10;
+  }
+}
+
+.vinyl-logo {
+  width: 60px;
+  height: auto;
+  margin-bottom: 5px;
+  filter: grayscale(100%) contrast(1.2);
+  mix-blend-mode: multiply;
+}
+
+.vinyl-text {
+  font-family: var(--font-geist-mono);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #000;
+  margin-top: 10px;
+}
+
+.equalizer-mini {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  align-items: flex-end;
+
+  span {
+    width: 2px;
+    background: var(--primary);
+    animation: eqBounce 1s infinite ease-in-out;
+    
+    &:nth-child(1) { height: 60%; animation-delay: 0s; }
+    &:nth-child(2) { height: 100%; animation-delay: 0.1s; }
+    &:nth-child(3) { height: 40%; animation-delay: 0.2s; }
+  }
+}
+
