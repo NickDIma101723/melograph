@@ -1,0 +1,516 @@
+@use '../abstracts/variables' as *;
+// Modal Styles
+.video-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #000; // Ensure solid black background
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  
+  // Reveal from Top to Bottom (hides bottom controls until end)
+  clip-path: inset(0 0 100% 0); 
+  
+  // Smoother transitions for both open and close
+  transition: opacity 0.4s ease-out,
+              visibility 0.4s ease-out,
+              clip-path 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+  
+  &.open {
+    opacity: 1;
+    visibility: visible;
+    clip-path: inset(0 0 0 0);
+    
+    .video-modal__content {
+      opacity: 1;
+      transform: scale(1);
+      transition-delay: 0.1s;
+    }
+    
+    .video-modal__header {
+      transform: translateY(0);
+      opacity: 1;
+      transition-delay: 0.3s;
+    }
+    
+    .video-modal__overlay {
+      opacity: 1;
+      transform: translateY(0);
+      transition-delay: 0.4s;
+    }
+    
+    // Controls appear faster to cover bottom
+    .video-modal__controls {
+      transform: translateY(0);
+      opacity: 1;
+      transition-delay: 0.2s; 
+    }
+  }
+
+  // Top Header
+  &__header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 2rem 3rem;
+    z-index: 10002;
+    transform: translateY(-20px);
+    opacity: 0;
+    transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  &__logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: monospace;
+    font-weight: 700;
+    font-size: 1rem;
+    line-height: 1;
+    letter-spacing: 0.2em;
+    color: white;
+    cursor: default;
+    
+    span {
+      display: block;
+    }
+  }
+  
+  &__close {
+    position: absolute;
+    top: 2rem;
+    right: 3rem;
+    width: 60px;
+    height: 60px;
+    background: transparent;
+    border: 2px solid #fefefe;
+    border-radius: 0;
+    color: #fefefe;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 10003;
+    overflow: hidden;
+    
+    svg {
+      width: 24px;
+      height: 24px;
+      stroke-width: 2px;
+      transition: all 0.3s ease;
+      z-index: 2;
+      position: relative;
+    }
+
+    // Shutter Effect
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 0%;
+      background: #fefefe;
+      transition: height 0.3s cubic-bezier(0.77, 0, 0.175, 1);
+      z-index: 1;
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 0%;
+      background: #fefefe;
+      transition: height 0.3s cubic-bezier(0.77, 0, 0.175, 1);
+      z-index: 1;
+    }
+
+    &:hover {
+      svg {
+        stroke: #000;
+        transform: rotate(90deg);
+      }
+
+      &::before {
+        height: 50%;
+      }
+      
+      &::after {
+        height: 50%;
+      }
+    }
+  }
+
+  @keyframes rotateRing {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  &__content {
+    width: 100%;
+    height: 100%;
+    transform: scale(1.05); // Reduced zoom for smoother feel
+    opacity: 0;
+    transition: all 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+  }
+
+  &.open &__content {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  &__player {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background: #000; // Hide loading flash
+    
+    .video-modal__youtube {
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+      
+      iframe {
+        width: 100%;
+        height: 100%;
+        display: block;
+        pointer-events: none;
+        transform: scale(1.35); // Push YouTube controls out of view
+        transform-origin: center;
+      }
+    }
+  }
+
+  // Click Layer
+  &__click-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5;
+    cursor: pointer;
+  }
+
+  // Text Overlay
+  &__overlay {
+    position: absolute;
+    top: 6rem;
+    left: 4rem;
+    z-index: 10;
+    pointer-events: none;
+    text-align: left;
+    width: auto;
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    mix-blend-mode: normal;
+  }
+
+  &__title {
+    font-family: 'Impact', sans-serif;
+    font-size: clamp(3rem, 5vw, 6rem);
+    font-weight: 900;
+    color: white;
+    line-height: 0.9;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+    margin: 0;
+    filter: none;
+    -webkit-text-stroke: 0;
+  }
+
+  // Bottom Control Bar
+  &__controls {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 0 2rem 2rem 2rem;
+    z-index: 10;
+    background: linear-gradient(to top, #000 0%, rgba(0,0,0,0.9) 40%, rgba(0,0,0,0) 100%); // Stronger gradient
+    transform: translateY(20px);
+    opacity: 0;
+    transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    max-width: none;
+    gap: 0;
+  }
+
+  &__progress-wrapper {
+    width: 100%;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    margin-bottom: 1rem;
+    
+    &:hover .video-modal__progress-bar {
+      height: 12px; // Expand on hover
+    }
+  }
+
+  &__progress-bg {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    position: relative;
+    border-radius: 0;
+    overflow: visible;
+    
+    // Ruler Ticks
+    &::before {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background-image: linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px);
+      background-size: 20px 100%;
+      pointer-events: none;
+    }
+  }
+
+  &__progress-bar {
+    height: 4px;
+    background: #fefefe;
+    width: 0%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transition: width 0.1s linear, height 0.2s ease;
+    border-radius: 0;
+    box-shadow: none;
+    
+    // The "Block" Head
+    &::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 16px;
+      background: #fefefe;
+      border-radius: 0;
+      box-shadow: none;
+      transition: all 0.2s ease;
+      z-index: 2;
+    }
+    
+    // Remove trailing energy
+    &::before {
+      display: none;
+    }
+  }
+
+  &__progress-thumb {
+    display: none;
+  }
+
+  &__bottom-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  &__bottom-left {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  &__play-btn {
+    width: 80px;
+    height: 80px;
+    background: transparent;
+    border: 2px solid #fefefe;
+    border-radius: 0; // Square
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s ease;
+    transform: none;
+    box-shadow: none;
+    overflow: hidden;
+
+    svg {
+      width: 28px;
+      height: 28px;
+      fill: #fefefe;
+      transition: all 0.3s ease;
+      z-index: 2;
+      position: relative;
+    }
+
+    // Shutter Effect (Top/Bottom)
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 0%;
+      background: #fefefe;
+      transition: height 0.3s cubic-bezier(0.77, 0, 0.175, 1);
+      z-index: 1;
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 0%;
+      background: #fefefe;
+      transition: height 0.3s cubic-bezier(0.77, 0, 0.175, 1);
+      z-index: 1;
+    }
+
+    &:hover {
+      border-color: #fefefe;
+      
+      svg {
+        fill: #000; // Invert color
+        transform: scale(1.1);
+      }
+
+      &::before {
+        height: 50%;
+      }
+      
+      &::after {
+        height: 50%;
+      }
+    }
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  &__artist-badge {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: #fefefe;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+    
+    &:hover {
+      opacity: 1;
+    }
+  }
+
+  &__keyhole {
+    width: 32px;
+    height: 32px;
+    fill: #fefefe;
+    filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));
+    animation: pulse 3s infinite ease-in-out;
+  }
+
+  &__badge-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+  }
+
+  &__badge-title {
+    font-family: 'Impact', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  &__badge-subtitle {
+    font-family: monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    color: rgba(255,255,255,0.6);
+    margin-top: 2px;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(0.95); }
+  }
+
+  &__project-info {
+    position: relative;
+    display: inline-block;
+    padding: 15px 30px;
+    border: 2px solid #fefefe;
+    text-transform: uppercase;
+    color: #fefefe;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 20px;
+    background-color: transparent;
+    cursor: pointer;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 6px;
+      left: -2px;
+      width: calc(100% + 4px);
+      height: calc(100% - 12px);
+      background-color: #212121;
+      transition: 0.3s ease-in-out;
+      transform: scaleY(1);
+    }
+
+    &:hover::before {
+      transform: scaleY(0);
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 6px;
+      top: -2px;
+      height: calc(100% + 4px);
+      width: calc(100% - 12px);
+      background-color: #212121;
+      transition: 0.3s ease-in-out;
+      transform: scaleX(1);
+      transition-delay: 0.5s;
+    }
+
+    &:hover::after {
+      transform: scaleX(0);
+    }
+
+    span {
+      position: relative;
+      z-index: 3;
+    }
+    
+    &:hover {
+      background: rgba(255,255,255,0.1); // Subtle hover effect instead
+    }
+  }
+}
+

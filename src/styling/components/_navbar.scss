@@ -1,0 +1,344 @@
+@use '../abstracts/variables' as *;
+// --- Navbar Styles ---
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2000;
+  mix-blend-mode: normal;
+  color: #fefefe;
+  padding: 40px;
+
+  // New: Hide when video modal is active
+  body.video-mode-active & {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    transition: opacity 0.5s ease;
+  }
+
+
+  &__corner {
+    position: absolute;
+    pointer-events: auto;
+
+    // DISABLE interaction when video mode is active
+    body.video-mode-active & {
+      pointer-events: none !important;
+    }
+
+    &--tl {
+      top: 1.5rem;
+      left: 1.5rem;
+      z-index: 1001; // Keep logo above menu if desired, or below if menu should cover
+      @media (max-width: 1024px) {
+        display: none;
+        
+        // Show only if navbar is open (parent class)
+        .navbar.is-open & {
+            display: block; // Or flex/initial depending on needed layout, but usually block is fine for wrapper
+        }
+      }
+    }
+
+    &--tr {
+      top: 1.5rem;
+      right: 1.5rem;
+      z-index: 2000; // Menu button MUST be above overlay (1500)
+      @media (max-width: 1024px) {
+         display: none;
+
+        .navbar.is-open & {
+            display: block;
+        }
+      }
+    }
+
+    &--bl {
+      bottom: 1.5rem;
+      left: 1.5rem;
+      z-index: 1001;
+      @media (max-width: 1024px) {
+        bottom: 20px;
+        left: 20px;
+        display: none;
+      }
+    }
+
+    &--br {
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 1001;
+      @media (max-width: 1024px) {
+        bottom: 20px;
+        right: 20px;
+        display: none;
+      }
+    }
+  }
+
+  &__logo {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    align-items: baseline;
+
+    &-dot {
+      color: #fefefe;
+    }
+  }
+
+  &__quick-links {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  &__link {
+    text-decoration: none;
+    color: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    position: relative;
+    overflow: hidden;
+    padding: 5px 0;
+
+    span {
+      display: block;
+      transition: transform 0.4s cubic-bezier(0.77, 0, 0.175, 1);
+      
+      &::before {
+        content: attr(data-text);
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        color: #fefefe;
+      }
+    }
+
+    &:hover span {
+      transform: translateY(-100%);
+    }
+  }
+
+  &__status {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    opacity: 0.7;
+  }
+
+  // --- Logo Refactored Styles ---
+  &__logo-link {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    text-decoration: none;
+
+    @media (max-width: 768px) {
+      gap: 0.5rem;
+    }
+  }
+
+  &__logo-monolith {
+    width: 12px;
+    height: 42px;
+    background: #fff;
+    transition: all 0.3s ease;
+    
+    @media (max-width: 768px) {
+      height: 30px;
+      width: 6px;
+    }
+  }
+
+  &__logo-text-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  &__logo-title {
+    font-family: var(--font-geist-mono);
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    color: #fff;
+    line-height: 0.9;
+    
+    @media (max-width: 768px) {
+      font-size: 1.2rem;
+    }
+  }
+
+  &__logo-subtitle-container {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 4px;
+    width: 100%;
+
+    @media (max-width: 768px) {
+      gap: 0.3rem;
+      margin-top: 2px;
+    }
+  }
+
+  &__logo-divider {
+     width: 100%;
+     height: 1px;
+     background: rgba(255,255,255,0.5);
+  }
+
+  &__logo-subtitle {
+     font-family: var(--font-geist-mono);
+     font-size: 0.65rem;
+     color: rgba(255,255,255,0.8);
+     text-transform: uppercase;
+     letter-spacing: 0.2em;
+     white-space: nowrap;
+
+     @media (max-width: 768px) {
+       font-size: 0.5rem;
+     }
+  }
+}
+
+// Independent Menu Trigger
+.navbar-menu-trigger {
+  position: fixed;
+  top: 40px;
+  right: 40px;
+  z-index: 2000; // Highest priority
+  mix-blend-mode: difference;
+  color: #fefefe;
+  pointer-events: auto;
+
+  .navbar__menu-btn {
+    background: none;
+    border: none;
+    color: inherit;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    text-transform: uppercase;
+
+    &:hover .navbar__hamburger span:first-child {
+      width: 100%;
+    }
+    
+    &:hover .navbar__hamburger span:last-child {
+      width: 60%;
+    }
+  }
+
+  .navbar__hamburger {
+    width: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-end;
+
+    span {
+      display: block;
+      height: 2px;
+      background-color: currentColor;
+      transition: all 0.3s ease;
+
+      &:first-child {
+        width: 60%;
+      }
+      &:last-child {
+        width: 100%;
+      }
+    }
+
+    &.active {
+      span:first-child {
+        transform: rotate(45deg) translate(5px, 6px);
+        width: 100%;
+      }
+      span:last-child {
+        transform: rotate(-45deg) translate(5px, -6px);
+        width: 100%;
+      }
+    }
+  }
+}
+
+
+// Music Note Icon Animation
+.navbar__menu-btn {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navbar__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;  /* Increased size */
+  height: 50px; /* Increased size */
+
+  @media (max-width: 768px) {
+    width: 30px; // Reduced for mobile
+    height: 30px;
+  }
+
+  svg {
+    width: 32px;
+    height: 32px;
+    
+    @media (max-width: 768px) {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  .music-note {
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    
+    @media (max-width: 768px) {
+      // Force scaling of the Next.js image if needed, though width/height on container limits it usually
+      // Because Next Image uses inline styles, we might need !important or max-width
+      width: 30px !important;
+      height: 30px !important;
+      min-width: 30px;
+      min-height: 30px;
+    }
+  }
+}
+
+.navbar__menu-btn:hover .music-note {
+  transform: scale(1.2) rotate(15deg);
+}
+
+
+
+
+/* Lenis Smooth Scroll */
+html.lenis, html.lenis body {
+  height: auto;
+}
+
