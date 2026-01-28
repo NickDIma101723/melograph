@@ -3,12 +3,12 @@ from sqlmodel import Field, SQLModel, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 from pydantic_settings import BaseSettings
-from typing import Optional
+from typing import Optional, AsyncGenerator # Added AsyncGenerator for typing
 
 class Settings(BaseSettings):
     neon_db_url: str
 
-settings = Settings(_env_file=None)
+settings = Settings() # Removed _env_file=None to allow reading from OS env vars (Cloud Run secrets)
 engine = create_async_engine(settings.neon_db_url, echo=False, future=True)
 
 class User(SQLModel, table=True):
@@ -17,17 +17,22 @@ class User(SQLModel, table=True):
     email: str
     full_name: Optional[str] = None
 
-SQLModel.metadata.create_all(bind=engine)
+# --- DELETE THIS LINE BELOW ---
+# SQLModel.metadata.create_all(bind=engine) 
+# ------------------------------
 
 app = FastAPI(title="Melobase API")
 
-async def get_session() -> AsyncSession:
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSession(engine) as session:
         yield session
 
+# Note: on_event is deprecated in newer FastAPI versions, consider lifespan context managers, 
+# but this will still work for now.
 @app.on_event("startup")
 async def startup():
     async with engine.begin() as conn:
+        # This is the CORRECT way to create tables with an async engine
         await conn.run_sync(SQLModel.metadata.create_all)
 
 @app.get("/")
