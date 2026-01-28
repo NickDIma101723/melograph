@@ -1,0 +1,26 @@
+.cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  mix-blend-mode: difference;
+
+  @media (pointer: coarse) {
+    display: none;
+  }
+}
+
+.dot {
+  width: 4px;
+  height: 4px;
+  background-color: white;
+  border-radius: 50%;
+}

@@ -6,35 +6,33 @@ export async function GET() {
 
   if (!API_KEY) {
     try {
-      console.log("No API Key found, fetching from NME Music RSS...");
-      const parser = new Parser();
+      console.log("No API Key found, fetching from Pitchfork Music RSS...");
+      const parser = new Parser({
+          customFields: {
+            item: [
+                ['media:thumbnail', 'thumbnail'], 
+                ['dc:creator', 'creator']
+            ],
+          }
+      });
       
-      // Fetch from NME RSS feed for real-time music news (2025/2026 dates)
-      // We use the specific /news/music/feed to ensure all content is music-related
-      const feed = await parser.parseURL('https://www.nme.com/news/music/feed');
+      // Fetch from Pitchfork RSS feed (NME was blocking requests with 403 Forbidden)
+      const feed = await parser.parseURL('https://pitchfork.com/feed/feed-news/rss');
       
       const articles = feed.items.map((item: any) => {
-         let imageUrl = null;
-         
-         // Extract image from content content:encoded
-         // NME puts the main image in the content
-         const content = item['content:encoded'] || item.content || "";
-         const imgMatch = content.match(/<img[^>]+src="([^">]+)"/);
-         if (imgMatch) {
-           imageUrl = imgMatch[1];
-         }
+         // Extract image from media:thumbnail
+         let imageUrl = item.thumbnail?.$?.url || null; // Parser usually puts attributes in $
 
-         // Use RSS fields
          return {
-            source: { id: 'nme', name: 'NME' },
-            author: item.creator || 'NME Staff',
+            source: { id: 'pitchfork', name: 'Pitchfork' },
+            author: item.creator || 'Pitchfork Staff',
             title: item.title,
-            description: item.contentSnippet || "",
+            description: item.contentSnippet || item.content || "",
             url: item.link,
             urlToImage: imageUrl,
-            publishedAt: item.isoDate || item.pubDate, // Use real date
-            categories: item.categories || [], // Pass categories
-            content: content
+            publishedAt: item.isoDate || item.pubDate, 
+            categories: item.categories || [],
+            content: item.content
          };
       }).filter((article: any) => article.urlToImage); // Filter out articles without images for quality UI
 
@@ -43,6 +41,10 @@ export async function GET() {
             status: "ok",
             source: "rss-live",
             articles: articles
+        }, {
+          headers: {
+            'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=59',
+          },
         });
       }
 
@@ -60,18 +62,11 @@ export async function GET() {
 
   // Original Logic for when API Key is present
   try {
-    const res = await fetch(`https://newsapi.org/v2/everything?q=music&from=2025-01-01&to=2025-12-31&sortBy=publishedAt&language=en&apiKey=${API_KEY}`, { next: { revalidate: 3600 } });
+    // Single robust request strategy (No fallbacks to avoid overloading)
+    const res = await fetch(`https://newsapi.org/v2/everything?q=music&from=2025-01-01&sortBy=publishedAt&language=en&apiKey=${API_KEY}`, { next: { revalidate: 3600 } });
     
     if (!res.ok) {
-        console.warn("2025 News fetch failed, trying latest news...");
-        const fallbackRes = await fetch(`https://newsapi.org/v2/everything?q=music&sortBy=publishedAt&language=en&apiKey=${API_KEY}`, { next: { revalidate: 3600 } });
-        
-        if (fallbackRes.ok) {
-            const fallbackData = await fallbackRes.json();
-             return NextResponse.json(fallbackData);
-        }
-
-       throw new Error('Failed to fetch data');
+       throw new Error(`API returned ${res.status}`);
     }
 
     const data = await res.json();

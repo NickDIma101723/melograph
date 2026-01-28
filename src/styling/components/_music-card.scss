@@ -1,8 +1,12 @@
 @use '../abstracts/variables' as *;
 // Music Info Card
 @keyframes sound {
-  0% { height: 3px; }
-  100% { height: 100%; }
+  0% { height: 10%; }
+  20% { height: 100%; }
+  40% { height: 50%; }
+  60% { height: 90%; }
+  80% { height: 30%; }
+  100% { height: 70%; }
 }
 
 @keyframes slideIn {
@@ -55,10 +59,10 @@
     right: 0;
     margin: 0 auto;
     
-    width: min(210px, 90%); // Standard width to ensure separating space exists
+    width: min(300px, 95%); // Wider
     min-width: 0; 
     max-width: none;
-    height: 48px; // Reduced height
+    height: 42px; // Thinner (42px looks better than 40px for touch)
     
     // Dynamic Island Appearance
     background: #000000;
@@ -70,11 +74,11 @@
     
     // GRID LAYOUT (The "Different Layout")
     display: grid !important;
-    grid-template-columns: 36px 1fr auto !important; // Icon | Text | Waveform
+    grid-template-columns: 34px 1fr auto !important; // Icon | Text | Waveform
     align-items: center !important;
     padding: 4px; 
     padding-right: 16px; 
-    gap: 8px 8px; // Explicit row/col gap
+    gap: 8px 10px; // Explicit row/col gap
     
     // Reset Flex props
     flex-wrap: nowrap !important;
@@ -105,10 +109,10 @@
     transform: none !important; // CSS override for Framer Motion
 
     &:hover {
-        transform: scale(1.02) !important; // Use !important to override framer
-        box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+        transform: none !important; // No hover scaling on mobile
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
         background: #000;
-        border-color: rgba(255,255,255,0.2);
+        border-color: rgba(255, 255, 255, 0.1);
     }
     
     // --- Collapsed Player Controls (Ghost Fix) ---
@@ -118,8 +122,8 @@
 
     // --- Collapsed Artwork ---
     .music-card__artwork {
-        width: 36px !important; // Matched to new grid
-        height: 36px !important;
+        width: 34px !important; // Matched to new grid
+        height: 34px !important;
         border-radius: 50%; // Circle
         margin: 0;
         z-index: 2;
@@ -183,7 +187,8 @@
                span {
                    width: 3px;
                    background: #22c55e; 
-                   animation: sound 1s ease-in-out infinite alternate;
+                   animation: sound 0.8s ease-in-out infinite alternate; // Faster tempo
+                   animation-play-state: paused; // Default paused
                    
                    &:nth-child(1) { height: 60%; animation-delay: 0s; }
                    &:nth-child(2) { height: 100%; animation-delay: 0.1s; }
@@ -192,6 +197,8 @@
                }
            }
        }
+
+
        
        .music-card__song {
            color: #fff;
@@ -213,15 +220,14 @@
            width: 100%;
        }
     }
+
+    // Play State Logic for Waveform (Correctly Scoped)
+    &.playing .music-card__waveform span {
+      animation-play-state: running;
+    }
   }
 
   // Hover transitions
-  &:hover {
-    transform: translateY(-5px) scale(1.02) rotate(1deg);
-    background: color-mix(in srgb, var(--card-bg, #D8C5E5), white 10%);
-    border-color: rgba(0, 0, 0, 0.2);
-    box-shadow: 0 40px 80px rgba(0, 0, 0, 0.3);
-  }
 
   &.hidden {
     opacity: 0;
@@ -549,6 +555,11 @@
         
         img { border-radius: 12px !important; }
       }
+
+      // Hide original content in expanded mode to prevent duplication (The "text at the bottom")
+      .music-card__content {
+          display: none !important;
+      }
       
       // Unwrap controls to layout children in grid
       .music-card__player-controls {
@@ -572,16 +583,7 @@
 
               // Minimize Button (Top Right absolute)
               .music-card__back-btn {
-                  position: absolute;
-                  top: -5px;
-                  right: 0px; // Far right of container
-                  background: rgba(255,255,255,0.15);
-                  border-radius: 50%;
-                  width: 24px;
-                  height: 24px;
-                  padding: 4px;
-                  
-                  svg { width: 100%; height: 100%; color: #fff; opacity: 0.7; }
+                  display: none !important;
               }
           }
           
