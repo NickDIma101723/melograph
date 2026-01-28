@@ -1,0 +1,286 @@
+.p-artist-detail {
+  background-color: #050505;
+  color: #fff;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+  --header-height: 85vh;
+
+  .return-btn {
+    position: fixed;
+    top: 2rem;
+    left: 2rem;
+    z-index: 100;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    padding: 0.8rem 1.5rem;
+    border-radius: 100px;
+    cursor: pointer;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    font-weight: 600;
+    transition: transform 0.2s;
+
+    &:hover {
+      transform: scale(1.05);
+      background: rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  header.artist-header {
+    position: relative;
+    height: var(--header-height);
+    width: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
+    padding: 2rem;
+    overflow: hidden;
+
+    @media (min-width: 768px) {
+      padding: 4rem;
+    }
+
+    .header-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      
+      .yt-wrapper {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        pointer-events: none;
+        transform: scale(1.25);
+        
+        iframe {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          opacity: 0.6;
+        }
+      }
+
+      .img-wrapper {
+        position: absolute;
+        inset: 0;
+        
+        img {
+          object-fit: cover;
+          opacity: 0.7;
+        }
+      }
+
+      .gradient-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top, #050505 0%, rgba(5, 5, 5, 0.2) 50%, transparent 100%);
+      }
+    }
+
+    .header-content {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 56rem; // max-w-4xl
+
+      .meta-tags {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+
+        .genre-badge {
+          padding: 0.25rem 0.75rem;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          border-radius: 9999px;
+          background: rgba(0, 0, 0, 0.2);
+          backdrop-filter: blur(4px);
+        }
+
+        .formed-year {
+          color: rgba(255, 255, 255, 0.6);
+          font-size: 0.875rem;
+          font-family: monospace;
+        }
+      }
+
+      h1 {
+        font-size: 3.5rem;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: -0.05em;
+        line-height: 0.85;
+        margin-bottom: 1.5rem;
+
+        @media (min-width: 768px) {
+            font-size: 6rem;
+        }
+        @media (min-width: 1024px) {
+            font-size: 8rem;
+        }
+      }
+
+      .biography {
+        max-width: 36rem;
+        font-size: 1.125rem;
+        color: rgba(255, 255, 255, 0.8);
+        font-weight: 300;
+        line-height: 1.6;
+      }
+    }
+  }
+
+  .content-body {
+    position: relative;
+    z-index: 20;
+    background: #050505;
+    min-height: 50vh;
+    padding: 4rem 1rem;
+
+    .content-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 3rem;
+
+      @media (min-width: 1024px) {
+        grid-template-columns: 7fr 5fr;
+      }
+    }
+
+    .tracks-section {
+      .section-title {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 1rem;
+        margin-bottom: 2rem;
+
+        h2 {
+          font-size: 1.875rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: -0.025em;
+        }
+
+        span {
+          font-size: 0.75rem;
+          font-family: monospace;
+          color: rgba(255, 255, 255, 0.4);
+        }
+      }
+
+      .song-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+    }
+
+    .stats-aside {
+      .stat-card {
+        padding: 1.5rem;
+        background: #111;
+        border-radius: 0.75rem;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+
+        .stat-label {
+          font-size: 0.75rem;
+          color: rgba(255, 255, 255, 0.4);
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+          font-size: 1.875rem;
+          font-family: monospace;
+          font-weight: 700;
+        }
+      }
+    }
+  }
+}
+
+// SONG ROW COMPONENT
+.song-row {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.2s;
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    
+    .index {
+       color: #fff;
+    }
+    .info .title {
+       color: #4ade80; // green-400
+    }
+  }
+
+  .index {
+    width: 2rem;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.4);
+    font-family: monospace;
+    font-size: 0.875rem;
+  }
+
+  .cover-art {
+    margin-left: 1rem;
+    margin-right: 1.5rem;
+    position: relative;
+    width: 2.5rem;
+    height: 2.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 0.25rem;
+    overflow: hidden;
+    flex-shrink: 0;
+    
+    img {
+      object-fit: cover;
+    }
+  }
+
+  .info {
+    flex-grow: 1;
+    min-width: 0;
+
+    .title {
+      font-weight: 500;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .album {
+      font-size: 0.875rem;
+      color: rgba(255, 255, 255, 0.4);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .duration {
+    width: 4rem;
+    text-align: right;
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-family: monospace;
+  }
+}

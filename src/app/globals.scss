@@ -3,7 +3,7 @@
 
 // Modern Color Palette
 
-$background: #0f172a; // Slate 900
+$background: #000000; // Pure Black
 $foreground: #f8fafc; // Slate 50
 $primary: #8b5cf6;    // Violet 500
 $primary-hover: #7c3aed; // Violet 600
@@ -886,138 +886,6 @@ html::-webkit-scrollbar {
 }
 
 // --- Navbar Styles ---
-.navbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 2000;
-  mix-blend-mode: normal;
-  color: #fefefe;
-  padding: 40px;
-
-  // New: Hide when video modal is active
-  body.video-mode-active & {
-    opacity: 0 !important;
-    pointer-events: none !important;
-    transition: opacity 0.5s ease;
-  }
-
-
-  &__corner {
-    position: absolute;
-    // Default interactive state
-    pointer-events: auto;
-
-    // DISABLE interaction when video mode is active
-    body.video-mode-active & {
-      pointer-events: none !important;
-    }
-
-    &--tl {
-      top: 40px;
-      left: 40px;
-      z-index: 1001; // Keep logo above menu if desired, or below if menu should cover
-      @media (max-width: 768px) {
-        top: 20px;
-        left: 20px;
-      }
-    }
-
-    &--tr {
-      top: 40px;
-      right: 40px;
-      z-index: 2000; // Menu button MUST be above overlay (1500)
-      @media (max-width: 768px) {
-        top: 20px;
-        right: 20px;
-      }
-    }
-
-    &--bl {
-      bottom: 40px;
-      left: 40px;
-      z-index: 1001;
-      @media (max-width: 768px) {
-        bottom: 20px;
-        left: 20px;
-        display: none;
-      }
-    }
-
-    &--br {
-      bottom: 40px;
-      right: 40px;
-      z-index: 1001;
-      @media (max-width: 768px) {
-        bottom: 20px;
-        right: 20px;
-        display: none;
-      }
-    }
-  }
-
-  &__logo {
-    font-size: 32px;
-    font-weight: 800;
-    letter-spacing: -1px;
-    text-decoration: none;
-    color: inherit;
-    display: flex;
-    align-items: baseline;
-
-    &-dot {
-      color: #fefefe;
-    }
-  }
-
-  &__quick-links {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    align-items: flex-start;
-  }
-
-  &__link {
-    text-decoration: none;
-    color: inherit;
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 1px;
-    position: relative;
-    overflow: hidden;
-    padding: 5px 0;
-
-    span {
-      display: block;
-      transition: transform 0.4s cubic-bezier(0.77, 0, 0.175, 1);
-      
-      &::before {
-        content: attr(data-text);
-        position: absolute;
-        top: 100%;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        color: #fefefe;
-      }
-    }
-
-    &:hover span {
-      transform: translateY(-100%);
-    }
-  }
-
-  &__status {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    opacity: 0.7;
-  }
-}
-
 // Independent Menu Trigger
 .navbar-menu-trigger {
   position: fixed;
@@ -1431,7 +1299,7 @@ html::-webkit-scrollbar {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 50px;  /* Increased size */
+  width: 20px;  /* Increased size */
 
   svg {
     width: 32px;

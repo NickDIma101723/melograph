@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
+import Image from "next/image";
 import YouTube from "react-youtube";
-import { motion, AnimatePresence } from "framer-motion";
-import gsap from "gsap";
+import { motion } from "framer-motion";
 import { useUI } from "@/context/UIContext";
 
 // FEATURED ARTISTS DATA
@@ -16,7 +16,8 @@ const FEATURED_ARTISTS = [
     year: '2025',
     genre: 'Hip-Hop / Rap',
     videoId: 's_TUESTU7_4',
-    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/ee/24/92/ee249222-bfef-2abe-b8d0-16f0f35a3b17/8721465006940.png/600x600bb.jpg',
+    previewUrl: 'https://video-ssl.itunes.apple.com/itunes-assets/Video221/v4/56/a4/51/56a4514d-be4c-af34-a648-4f0edc8ebd32/mzvf_10910503337687684418.1920w.h264lc.U.p.m4v',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/ee/24/92/ee249222-bfef-2abe-b8d0-16f0f35a3b17/8721465006940.png/1000x1000bb.jpg',
     link: 'https://LilUziVert.lnk.to/WhatYouSaying',
     badge: {
       title: 'EA',
@@ -31,11 +32,12 @@ const FEATURED_ARTISTS = [
     album: 'Structure - EP',
     year: '2024',
     genre: 'Alternative',
-    videoId: 'PboALhmuYws', // Live at Jimmy Fallon (Video)
+    videoId: 'c8zq4kAn_O0',
+    previewUrl: 'https://video-ssl.itunes.apple.com/itunes-assets/Video221/v4/be/fa/b6/befab6aa-1af3-081e-b646-b09cb0c5b300/mzvf_10026529937376233414.1920w.h264lc.U.p.m4v',
     artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/5d/d5/ad/5dd5ad1b-fabf-9218-77f0-3adbfd5328ac/054391237118.jpg/1000x1000bb.jpg',
     link: 'https://music.apple.com/us/album/back-to-being-friends/1739091873',
     badge: {
-      title: 'S',
+      title: 'SO',
       subtitle: 'MBR'
     },
     cardColor: '#9FB1BC'
@@ -43,16 +45,17 @@ const FEATURED_ARTISTS = [
   {
     id: 'kendrick',
     artist: 'Kendrick Lamar',
-    song: 'Not Like Us',
-    album: 'Not Like Us - Single',
-    year: '2024',
+    song: 'luther',
+    album: 'GNX',
+    year: '2025',
     genre: 'Hip-Hop',
-    videoId: 'H58vbez_m4E', 
-    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Music221/v4/31/3a/3f/313a3fbc-bb8f-80c7-b5a2-e226869a38cd/24UMGIM51924.rgb.jpg/1000x1000bb.jpg',
-    link: 'https://music.apple.com/us/album/not-like-us/1781353928',
+    videoId: 'sNY_2TEmzho',
+    previewUrl: 'https://video-ssl.itunes.apple.com/itunes-assets/Video211/v4/9c/1f/b4/9c1fb45e-2d6f-dfec-417e-505888393068/mzvf_8741738360778228765.1920w.h264lc.U.p.m4v',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Video211/v4/c7/a0/44/c7a04494-9008-2321-f83e-156b76e547fc/25UMGIM55207.crop.jpg/1000x1000bb.jpg',
+    link: 'https://music.apple.com/us/album/gnx/1781353928',
     badge: {
-      title: 'PG',
-      subtitle: 'LANG'
+      title: 'GN',
+      subtitle: 'X'
     },
     cardColor: '#C4B2A6'
   }
@@ -66,6 +69,10 @@ export default function Hero() {
   const [isMobile, setIsMobile] = useState(false);
   const [currentArtistIndex, setCurrentArtistIndex] = useState(0);
   const activeArtist = FEATURED_ARTISTS[currentArtistIndex];
+  
+  // Dynamic Island State
+  const [showDynamicIsland, setShowDynamicIsland] = useState(false);
+  const swipeStartX = useRef(0);
 
   useEffect(() => {
     const handleResize = () => {
@@ -79,8 +86,43 @@ export default function Hero() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+  
+  // Swipe Detection for Mobile (Horizontal Swipe Left)
+  useEffect(() => {
+    if (!isMobile) return;
+    
+    const handleTouchStart = (e: TouchEvent) => {
+      swipeStartX.current = e.touches[0].clientX;
+    };
+    
+    const handleTouchEnd = (e: TouchEvent) => {
+      const swipeEndX = e.changedTouches[0].clientX;
+      const swipeDistance = swipeStartX.current - swipeEndX;
+      
+      // Swipe LEFT detected (at least 50px)
+      if (swipeDistance > 50) {
+        // If menu is closed, this opens it. If open, toggle might close it, 
+        // but typically swipe left on hero means "Open Menu" if the menu slides from right.
+        toggleMenu();
+      }
+    };
+    
+    document.addEventListener('touchstart', handleTouchStart);
+    document.addEventListener('touchend', handleTouchEnd);
+    
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isMobile, toggleMenu]);
+
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const nextArtist = () => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
+    setTimeout(() => setIsTransitioning(false), 800); // 800ms cooldown matching transition
+
     setCurrentArtistIndex((prev) => (prev + 1) % FEATURED_ARTISTS.length);
     setIsMiniPlaying(false);
     setMiniProgress(0);
@@ -93,6 +135,10 @@ export default function Hero() {
   };
 
   const prevArtist = () => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
+    setTimeout(() => setIsTransitioning(false), 800);
+
     setCurrentArtistIndex((prev) => (prev - 1 + FEATURED_ARTISTS.length) % FEATURED_ARTISTS.length);
     setIsMiniPlaying(false);
     setMiniProgress(0);
@@ -105,6 +151,10 @@ export default function Hero() {
   };
 
   const goToArtist = (index: number) => {
+    if (isTransitioning || index === currentArtistIndex) return;
+    setIsTransitioning(true);
+    setTimeout(() => setIsTransitioning(false), 800);
+
     setCurrentArtistIndex(index);
     setIsMiniPlaying(false);
     setMiniProgress(0);
@@ -137,7 +187,7 @@ export default function Hero() {
         if(timeout) return;
         handleWheel(e);
         timeout = setTimeout(() => {
-             // @ts-ignore
+             // @ts-expect-error - Clearing timeout reference
              timeout = null; 
         }, 1000); // 1 second cooldown
     };
@@ -161,6 +211,7 @@ export default function Hero() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHasMounted(true);
 
     // Disable scrolling when Hero is active (Home Page)
@@ -176,8 +227,7 @@ export default function Hero() {
       document.body.style.backgroundColor = originalBg;
     };
   }, []);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const playerRef = useRef<any>(null);
+  const playerRef = useRef<HTMLVideoElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const modalPlayerRef = useRef<any>(null);
   const [isMiniPlayer, setIsMiniPlayer] = useState(false);
@@ -232,7 +282,7 @@ export default function Hero() {
   const startMiniProgressTracking = () => {
     if (miniProgressInterval.current) clearInterval(miniProgressInterval.current);
     miniProgressInterval.current = setInterval(() => {
-      if (modalPlayerRef.current) {
+      if (modalPlayerRef.current && typeof modalPlayerRef.current.getCurrentTime === 'function') {
         const currentTime = modalPlayerRef.current.getCurrentTime();
         const totalDuration = modalPlayerRef.current.getDuration();
         if (totalDuration) {
@@ -257,20 +307,26 @@ export default function Hero() {
     const percentage = Math.min(Math.max(x / rect.width, 0), 1);
     
     const seekTime = percentage * miniDuration;
-    modalPlayerRef.current.seekTo(seekTime, true);
+    if (typeof modalPlayerRef.current.seekTo === 'function') {
+        modalPlayerRef.current.seekTo(seekTime, true);
+    }
     setMiniProgress(percentage * 100);
   };
 
   const toggleMiniPlayPause = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    if (!modalPlayerRef.current || typeof modalPlayerRef.current.playVideo !== 'function') return;
+    if (!modalPlayerRef.current) return;
     
     if (isMiniPlaying) {
-      modalPlayerRef.current.pauseVideo();
+      if (typeof modalPlayerRef.current.pauseVideo === 'function') {
+        modalPlayerRef.current.pauseVideo();
+      }
       setIsMiniPlaying(false);
       stopMiniProgressTracking();
     } else {
-      modalPlayerRef.current.playVideo();
+      if (typeof modalPlayerRef.current.playVideo === 'function') {
+        modalPlayerRef.current.playVideo();
+      }
       setIsMiniPlaying(true);
       startMiniProgressTracking();
     }
@@ -280,7 +336,7 @@ export default function Hero() {
   const startVideoProgressTracking = () => {
     if (videoProgressInterval.current) clearInterval(videoProgressInterval.current);
     videoProgressInterval.current = setInterval(() => {
-      if (fullScreenPlayerRef.current) {
+      if (fullScreenPlayerRef.current && typeof fullScreenPlayerRef.current.getCurrentTime === 'function') {
         const currentTime = fullScreenPlayerRef.current.getCurrentTime();
         const totalDuration = fullScreenPlayerRef.current.getDuration();
         if (totalDuration) {
@@ -305,20 +361,26 @@ export default function Hero() {
     const percentage = Math.min(Math.max(x / rect.width, 0), 1);
     
     const seekTime = percentage * videoDuration;
-    fullScreenPlayerRef.current.seekTo(seekTime, true);
+    if (typeof fullScreenPlayerRef.current.seekTo === 'function') {
+        fullScreenPlayerRef.current.seekTo(seekTime, true);
+    }
     setVideoProgress(percentage * 100);
   };
 
   const toggleVideoPlayPause = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    if (!fullScreenPlayerRef.current || typeof fullScreenPlayerRef.current.playVideo !== 'function') return;
+    if (!fullScreenPlayerRef.current) return;
 
     if (isVideoPlaying) {
-      fullScreenPlayerRef.current.pauseVideo();
+      if (typeof fullScreenPlayerRef.current.pauseVideo === 'function') {
+          fullScreenPlayerRef.current.pauseVideo();
+      }
       setIsVideoPlaying(false);
       stopVideoProgressTracking();
     } else {
-      fullScreenPlayerRef.current.playVideo();
+      if (typeof fullScreenPlayerRef.current.playVideo === 'function') {
+          fullScreenPlayerRef.current.playVideo();
+      }
       setIsVideoPlaying(true);
       startVideoProgressTracking();
     }
@@ -331,15 +393,19 @@ export default function Hero() {
     
     if (willBeOpen) {
       // Opening: Auto play
-      if (modalPlayerRef.current && typeof modalPlayerRef.current.playVideo === 'function') {
-        modalPlayerRef.current.playVideo();
+      if (modalPlayerRef.current) {
+        if (typeof modalPlayerRef.current.playVideo === 'function') {
+           modalPlayerRef.current.playVideo();
+        }
         setIsMiniPlaying(true);
         startMiniProgressTracking();
       }
     } else {
       // Closing: Pause
-      if (modalPlayerRef.current && typeof modalPlayerRef.current.pauseVideo === 'function') {
-        modalPlayerRef.current.pauseVideo();
+      if (modalPlayerRef.current) {
+        if (typeof modalPlayerRef.current.pauseVideo === 'function') {
+           modalPlayerRef.current.pauseVideo();
+        }
         setIsMiniPlaying(false);
         stopMiniProgressTracking();
       }
@@ -351,17 +417,21 @@ export default function Hero() {
     setIsModalOpen(true);
     
     // Pause audio player if playing
-    if (isMiniPlaying && modalPlayerRef.current && typeof modalPlayerRef.current.pauseVideo === 'function') {
-      modalPlayerRef.current.pauseVideo();
+    if (isMiniPlaying && modalPlayerRef.current) {
+      if (typeof modalPlayerRef.current.pauseVideo === 'function') {
+        modalPlayerRef.current.pauseVideo();
+      }
       setIsMiniPlaying(false);
       stopMiniProgressTracking();
     }
     
     // Start video player
-    if (fullScreenPlayerRef.current && typeof fullScreenPlayerRef.current.playVideo === 'function') {
-      fullScreenPlayerRef.current.playVideo();
-      setIsVideoPlaying(true);
-      startVideoProgressTracking();
+    if (fullScreenPlayerRef.current) {
+        if (typeof fullScreenPlayerRef.current.playVideo === 'function') {
+           fullScreenPlayerRef.current.playVideo();
+        }
+        setIsVideoPlaying(true);
+        startVideoProgressTracking();
     }
   };
 
@@ -370,28 +440,12 @@ export default function Hero() {
     
     // Stop video player
     if (fullScreenPlayerRef.current) {
-      if (typeof fullScreenPlayerRef.current.pauseVideo === 'function') {
-        fullScreenPlayerRef.current.pauseVideo();
-      }
-      setIsVideoPlaying(false);
-      stopVideoProgressTracking();
-      fullScreenPlayerRef.current = null;
+        if (typeof fullScreenPlayerRef.current.pauseVideo === 'function') {
+             fullScreenPlayerRef.current.pauseVideo();
+        }
+        setIsVideoPlaying(false);
+        stopVideoProgressTracking();
     }
-  };
-
-  const videoOptions = {
-    playerVars: {
-      autoplay: 1,
-      controls: 0,
-      rel: 0,
-      showinfo: 0,
-      mute: 1,
-      loop: 1,
-      playlist: activeArtist.videoId, // Dynamic Playlist ID
-      modestbranding: 1,
-      playsinline: 1,
-      vq: 'hd2160', 
-    },
   };
 
   const modalVideoOptions = {
@@ -404,11 +458,9 @@ export default function Hero() {
       disablekb: 1, 
       fs: 0, 
       vq: 'hd2160', 
+      origin: typeof window !== 'undefined' ? window.location.origin : undefined,
     },
   };
-
-  // Stagger Animation Config
-
 
   if (!hasMounted) return null;
 
@@ -423,23 +475,36 @@ export default function Hero() {
     >
       <section className="hero" ref={heroRef}>
         <div className="hero__video-wrapper">
-          <YouTube
-            key={`hero-${activeArtist.videoId}`}
-            videoId={activeArtist.videoId}
+          <video
+            ref={playerRef}
+            key={`hero-${activeArtist.id}`}
+            src={activeArtist.previewUrl}
             className="hero__video-iframe"
-            opts={videoOptions}
-            onReady={(event) => {
-              playerRef.current = event.target;
-              event.target.mute();
-              event.target.setPlaybackQuality('highres');
-              event.target.seekTo(0);
-              event.target.playVideo();
-            }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            autoPlay
+            muted
+            loop
+            playsInline
+            poster={activeArtist.artwork}
           />
         </div>
 
         <div className="hero__grain"></div>
         <div className="hero__overlay"></div>
+        
+        {/* RIGHT EDGE - Mobile Swipe Hint */}
+        {isMobile && (
+          <motion.div 
+            className="hero__edge-indicator"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 1, duration: 0.8 }}
+            onClick={toggleMenu} // Added Click Handler
+          >
+            <div className="hero__edge-handle"></div>
+            <span className="hero__edge-text">MENU</span>
+          </motion.div>
+        )}
 
         {/* SIDE NAVIGATION */}
         {!isMobile && (
@@ -462,8 +527,8 @@ export default function Hero() {
           <motion.div 
             className="hero__title-massive"
             key={`title-${activeArtist.id}`}
-            initial={{ opacity: 0, y: 50, filter: 'blur(10px)' }}
-            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} 
           >
             <span>{activeArtist.badge.title}</span>
@@ -484,7 +549,7 @@ export default function Hero() {
         {/* Hidden YouTube Player for Audio */}
         <div style={{ display: 'none' }}>
           <YouTube
-            key={`audio-${activeArtist.videoId}`}
+            key={`audio-${activeArtist.id}`}
             videoId={activeArtist.videoId}
             opts={modalVideoOptions}
             onReady={(event) => {
@@ -511,20 +576,20 @@ export default function Hero() {
         {/* Music Info Card */}
         <motion.div 
           key={isMobile ? "mobile-card" : "desktop-card"}
-          className={`music-card ${isMiniPlayer ? "mini-player-active" : ""}`} 
+          className={`music-card ${isMiniPlayer ? "mini-player-active" : ""} ${(isVideoPlaying || isMiniPlaying) ? "playing" : ""}`} 
           drag={isMobile ? false : "x"}
           dragConstraints={{ left: 0, right: 0 }}
           dragElastic={isMobile ? 0 : 0.1}
           dragMomentum={!isMobile}
           onDragStart={() => { if (!isMobile) isPanning.current = true; }}
-          onDragEnd={(e, info) => {
+          onDragEnd={(_, info) => {
              if (isMobile) return;
              setTimeout(() => { isPanning.current = false; }, 50);
              if (Math.abs(info.offset.x) > 50) {
                   toggleMenu();
              }
           }}
-          onClick={(e) => {
+          onClick={() => {
             if (!isPanning.current) {
                toggleMiniPlayer();
             }
@@ -535,7 +600,15 @@ export default function Hero() {
           style={{ '--card-bg': activeArtist.cardColor } as React.CSSProperties}
         >
           <div className="music-card__artwork">
-            <img src={activeArtist.artwork} alt={`${activeArtist.song} - Artwork`} />
+            <Image 
+              src={activeArtist.artwork} 
+              alt={`${activeArtist.song} - Artwork`}
+              width={80}
+              height={80}
+              style={{ objectFit: 'cover' }}
+              // Optimizing: Use lazy loading to prevent blocking during rapid slides
+              loading="lazy" 
+            />
             <div className="music-card__overlay">
               <button className="music-card__play-btn" onClick={openModal}>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">

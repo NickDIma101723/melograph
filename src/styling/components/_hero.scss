@@ -85,6 +85,53 @@
   touch-action: none;
   overscroll-behavior: none;
   
+  &__edge-indicator {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 100;
+    pointer-events: auto; /* Allow clicking */
+    cursor: pointer;      /* Show pointer on hover */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding-right: 0.5rem;
+    
+    /* Increase hit area */
+    padding: 2rem 1rem 2rem 2rem; 
+    margin-right: -1rem; /* Offset padding */
+
+    @media (min-width: 1025px) {
+      display: none;
+    }
+  }
+
+  &__edge-handle {
+    width: 4px;
+    height: 40px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 2px;
+    animation: pulse-opacity 2s ease-in-out infinite;
+  }
+  
+  &__edge-text {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    color: rgba(255,255,255,0.5);
+    font-size: 0.6rem;
+    font-family: var(--font-geist-mono);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    transform: rotate(180deg); // Read efficiently from outside in
+  }
+  
+  @keyframes pulse-opacity {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.8; }
+  }
+  
   &__video {
     position: absolute;
     top: 0;

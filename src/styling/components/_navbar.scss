@@ -32,27 +32,53 @@
     &--tl {
       top: 1.5rem;
       left: 1.5rem;
-      z-index: 1001; // Keep logo above menu if desired, or below if menu should cover
+      z-index: 1001; 
       @media (max-width: 1024px) {
-        display: none;
-        
-        // Show only if navbar is open (parent class)
-        .navbar.is-open & {
-            display: block; // Or flex/initial depending on needed layout, but usually block is fine for wrapper
+        display: block; 
+        top: 1.5rem; // Enforce explicit top alignment
+        left: 1.5rem;
+      }
+      
+      // Hide ONLY if specifically requested via class (e.g. Artist Detail or Home)
+      // BUT keep visible if menu is open
+      .navbar--artist-detail &,
+      .navbar--home & {
+         @media (max-width: 768px) {
+            display: none !important;
+         }
+      }
+      
+      // Force visible when menu is open
+      .navbar.is-open & {
+        @media (max-width: 768px) {
+          display: block !important;
         }
       }
     }
 
     &--tr {
       top: 1.5rem;
-      right: 1.5rem;
-      z-index: 2000; // Menu button MUST be above overlay (1500)
+      right: 2rem; /* Moved slightly left (was 1.5rem) */
+      z-index: 2000;
       @media (max-width: 1024px) {
-         display: none;
+         display: block; 
+         top: 1.5rem; // Enforce explicit top alignment matches Logo
+         right: 2rem;
+      }
 
-        .navbar.is-open & {
-            display: block;
-        }
+      // Hide ONLY if specifically requested
+      .navbar--artist-detail &,
+      .navbar--home & {
+         @media (max-width: 768px) {
+            display: none !important;
+         }
+      }
+
+      // FIX: Ensure close button is visible when menu is open, even on Home/Mobile
+      .navbar.is-open & {
+         @media (max-width: 768px) {
+            display: block !important;
+         }
       }
     }
 
@@ -287,6 +313,8 @@
   background: transparent;
   border: none;
   padding: 0;
+  margin: 0; // Reset margin to ensure alignment
+  line-height: 0; // Eliminate line-height spacing issues
   cursor: pointer;
   color: inherit;
   display: flex;
@@ -316,8 +344,19 @@
     }
   }
 
+  @keyframes spin-icon-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes spin-icon-fast {
+    from { transform: scale(1.2) rotate(0deg); }
+    to { transform: scale(1.2) rotate(360deg); }
+  }
+
   .music-note {
     transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    animation: spin-icon-slow 12s linear infinite;
     
     @media (max-width: 768px) {
       // Force scaling of the Next.js image if needed, though width/height on container limits it usually
@@ -331,7 +370,7 @@
 }
 
 .navbar__menu-btn:hover .music-note {
-  transform: scale(1.2) rotate(15deg);
+  animation: spin-icon-fast 2s linear infinite;
 }
 
 

@@ -46,26 +46,12 @@
   overscroll-behavior: contain; /* Prevent scroll chaining */
   touch-action: pan-y; /* Optimize for touch */
   
-  // Scrollbar Styling
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.3) transparent;
+  // Scrollbar Styling (Hidden but functional)
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
   
   &::-webkit-scrollbar {
-    display: block; // Show scrollbar
-    width: 4px;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background-color: rgba(255,255,255,0.3);
-    border-radius: 4px;
-    
-    &:hover {
-      background-color: rgba(255,255,255,0.5);
-    }
+    display: none; // Chrome, Safari, Opera
   }
 }
 
@@ -169,6 +155,23 @@
   color: rgba(255,255,255,0.5);
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+
+.btnLike {
+  margin-left: auto;
+  margin-right: 1.5rem;
+  font-size: 1.5rem;
+  color: rgba(255,255,255,0.2);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  &:hover {
+    color: #ef4444;
+    transform: scale(1.2);
+    opacity: 1;
+  }
 }
 
 // PREVIEW/DETAILS SECTION
@@ -344,5 +347,124 @@
 
   &:active {
     transform: scale(0.95);
+  }
+}
+
+// --- RESPONSIVE DESIGN ---
+
+// Tablet (Portrait) & Small Desktop
+@media (max-width: 1024px) {
+  .listSection {
+    width: 45%;
+    padding: 6rem 1.5rem 3rem 1.5rem;
+  }
+  
+  .header h1 {
+    font-size: 2.5rem;
+  }
+  
+  .artworkContainer {
+    width: 40vh;
+    height: 40vh;
+  }
+  
+  .bigTitle {
+    font-size: 3rem;
+  }
+  
+  .bigRank {
+    font-size: 25rem;
+  }
+}
+
+// Mobile
+@media (max-width: 768px) {
+  .page {
+    flex-direction: column-reverse;
+  }
+
+  // List becomes bottom sheet
+  .listSection {
+    width: 100%;
+    height: 45%; // Bottom half
+    border-right: none;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding: 2rem 1rem;
+    background: rgba(0,0,0,0.8); // Darker background for contrast
+  }
+
+  .previewSection {
+    width: 100%;
+    height: 55%; // Top half
+    padding-top: 3rem; // Space for navbar optionally
+  }
+
+  .artworkContainer {
+    width: 180px;
+    height: 180px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  
+  .bigRank {
+    font-size: 15rem; // Much smaller
+    opacity: 0.1;
+  }
+  
+  .songInfo {
+    left: 1.5rem;
+    bottom: 5rem; // Move up to clear controls if needed, or overlay
+    max-width: 70%;
+  }
+  
+  .bigTitle {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .bigArtist {
+    font-size: 0.9rem;
+  }
+
+  .controls {
+    bottom: 1.5rem;
+    right: 1.5rem;
+  }
+  
+  .playWrapper {
+    width: 4rem;
+    height: 4rem;
+  }
+  
+  .playButton {
+    width: 3rem;
+    height: 3rem;
+    
+    svg {
+       width: 20px;
+       height: 20px;
+    }
+  }
+
+  // Adjust List Items for Mobile
+  .trackItem {
+     padding: 1rem 0.5rem;
+     gap: 1rem;
+  }
+  
+  .rank {
+     font-size: 1.2rem;
+     width: 2rem;
+  }
+  
+  .trackName {
+     font-size: 0.95rem;
+  }
+  
+  .header {
+     margin-bottom: 1rem;
+     
+     h1 {
+        font-size: 1.8rem;
+     }
   }
 }

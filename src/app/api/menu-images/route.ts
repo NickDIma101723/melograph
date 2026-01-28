@@ -28,14 +28,16 @@ export async function GET() {
   // New Login & Top 20 Images
   let daftImage = 'https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?q=80&w=1200';
   let weekndImage = 'https://images.unsplash.com/photo-1619983081563-430f63602796?q=80&w=1200'; // Fallback
-  
+  let kraftwerkImage = 'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1200'; // Fallback for Dashboard
+
   // Fetch real artwork asynchronously
-  const [billie, travis, tyler, daft, weeknd] = await Promise.all([
+  const [billie, travis, tyler, daft, weeknd, kraftwerk] = await Promise.all([
     getItunesImage('Billie Eilish Happier Than Ever'),
     getItunesImage('Travis Scott Astroworld'),
     getItunesImage('Tyler, The Creator IGOR'),
     getItunesImage('Daft Punk Random Access Memories'),
-    getItunesImage('The Weeknd After Hours')
+    getItunesImage('The Weeknd After Hours'),
+    getItunesImage('Kraftwerk Computer World')
   ]);
 
   if (billie) billieImage = billie;
@@ -43,6 +45,7 @@ export async function GET() {
   if (tyler) tylerImage = tyler;
   if (daft) daftImage = daft;
   if (weeknd) weekndImage = weeknd;
+  if (kraftwerk) kraftwerkImage = kraftwerk;
 
   const menuItems = [
     {
@@ -65,12 +68,18 @@ export async function GET() {
     },
     {
       id: 'IV',
+      label: 'DASHBOARD',
+      href: '/dashboard',
+      image: kraftwerkImage
+    },
+    {
+      id: 'V',
       label: 'NEWS',
       href: '/news',
       image: tylerImage
     },
     {
-      id: 'V',
+      id: 'VI',
       label: 'LOGIN',
       href: '/auth',
       image: daftImage
