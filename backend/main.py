@@ -8,8 +8,12 @@ from typing import Optional, AsyncGenerator # Added AsyncGenerator for typing
 class Settings(BaseSettings):
     neon_db_url: str
 
-settings = Settings() # Removed _env_file=None to allow reading from OS env vars (Cloud Run secrets)
-engine = create_async_engine(settings.neon_db_url, echo=False, future=True)
+settings = Settings()
+
+# FIX: Force the URL to use the async driver
+connection_string = settings.neon_db_url.replace("postgresql://", "postgresql+asyncpg://")
+
+engine = create_async_engine(connection_string, echo=False, future=True)
 
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
