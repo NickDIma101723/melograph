@@ -1,6 +1,8 @@
 import ytSearch from 'yt-search';
 import { ROSTER } from '@/lib/constants';
 
+export { ROSTER };
+
 export interface ArtistData {
     idArtist: string;
     strArtist: string;
