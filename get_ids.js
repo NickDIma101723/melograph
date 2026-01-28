@@ -1,11 +1,9 @@
 const yts = require('yt-search');
 
 const queries = [
-  'Sombr Back to Being Friends',
-  'Kendrick Lamar Not Like Us',
-  'Manos Baby',
-  'Frank Ocean Pink + White',
-  'Tame Impala The Less I Know The Better'
+  'Kendrick Lamar SZA luthe official content',
+  'Lil Uzi Vert What You Saying official video',
+  'Sombr Back to Being Friends'
 ];
 
 async function run() {

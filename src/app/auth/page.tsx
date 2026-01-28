@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import styles from './auth.module.scss';
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
 
@@ -19,21 +20,21 @@ export default function AuthPage() {
   };
 
   return (
-    <div className={"p-auth"}>
+    <div className={styles.page}>
       {/* Background Ambience */}
-      <div className={"noiseOverlay"} />
-      <div className={"gridLines"} />
-      <div className={"scanline"} />
+      <div className={styles.noiseOverlay} />
+      <div className={styles.gridLines} />
+      <div className={styles.scanline} />
 
       <motion.div 
-        className={"authContainer"}
+        className={styles.authContainer}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
       >
-        <div className={"authHeader"}>
-          <h1 className={"logo"}>Melograph</h1>
-          <div className={"subtitle"}>
+        <div className={styles.authHeader}>
+          <h1 className={styles.logo}>Melograph</h1>
+          <div className={styles.subtitle}>
             {isLogin ? '// ACCESS_TERMINAL' : '// NEW_USER_REGISTRATION'}
           </div>
         </div>
@@ -48,12 +49,12 @@ export default function AuthPage() {
                 exit={{ opacity: 0, height: 0, marginBottom: 0 }}
                 transition={{ duration: 0.3, ease: 'easeInOut' }}
                 style={{ overflow: 'hidden' }}
-                className={"formGroup"}
+                className={styles.formGroup}
               >
                 <input 
                   type="text" 
                   placeholder="USERNAME" 
-                  className={"input"}
+                  className={styles.input}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required={!isLogin}
@@ -62,31 +63,40 @@ export default function AuthPage() {
             )}
           </AnimatePresence>
 
-          <div className={"formGroup"}>
+          <div className={styles.formGroup}>
             <input 
               type="email" 
               placeholder="EMAIL_ADDRESS" 
-              className={"input"}
+              className={styles.input}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
 
-          <div className={"formGroup"}>
+          <div className={styles.formGroup}>
             <input 
               type="password" 
               placeholder="PASSWORD" 
-              className={"input"}
+              className={styles.input}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
           </div>
 
+          {!isLogin && (
+             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', opacity: 0.8 }}>
+                <input type="checkbox" id="artistCheck" style={{ accentColor: '#fff', cursor: 'pointer' }} />
+                <label htmlFor="artistCheck" style={{ fontFamily: 'var(--font-geist-mono)', fontSize: '0.8rem', cursor: 'pointer' }}>
+                    REGISTER AS ARTIST
+                </label>
+             </div>
+          )}
+
           <motion.button 
             type="submit" 
-            className={"submitBtn"}
+            className={styles.submitBtn}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
@@ -94,14 +104,21 @@ export default function AuthPage() {
           </motion.button>
         </form>
 
-        <div className={"toggleContainer"}>
+        <div className={styles.toggleContainer}>
           <span>{isLogin ? "DON'T HAVE AN ACCESS KEY?" : "ALREADY REGISTERED?"}</span>
           <button 
-            className={"toggleBtn"}
+            className={styles.toggleBtn}
             onClick={() => setIsLogin(!isLogin)}
           >
             {isLogin ? 'CREATE_ACCOUNT' : 'LOG_IN'}
           </button>
+        </div>
+
+        {/* Temporary Dev Link */}
+        <div style={{ textAlign: 'center', marginTop: '1rem', opacity: 0.3 }}>
+             <Link href="/profile" style={{ fontSize: '0.7rem', fontFamily: 'var(--font-geist-mono)' }}>
+                 [DEV] VIEW_PROFILE_TEMPLATE
+             </Link>
         </div>
       </motion.div>
     </div>

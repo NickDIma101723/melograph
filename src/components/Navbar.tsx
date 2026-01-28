@@ -3,9 +3,11 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m as motion, AnimatePresence } from 'framer-motion';
 import { useUI } from '@/context/UIContext';
 import { usePathname } from 'next/navigation';
+import { getCache, setCache } from '@/lib/client-cache';
+import { LazyMotion, domAnimation } from 'framer-motion';
 
 const Navbar = () => {
   const { isMenuOpen, toggleMenu } = useUI();
@@ -13,13 +15,25 @@ const Navbar = () => {
   const [hoveredImage, setHoveredImage] = useState<string | null>(null);
   const [menuItems, setMenuItems] = useState<Array<{ id: string; label: string; href: string; image: string }>>([]);
 
+  // Check if we are on an artist detail page (e.g. /artists/name) but not the main artists list (/artists)
+  const isArtistDetail = pathname?.startsWith('/artists/') && pathname.split('/').filter(Boolean).length > 1;
+
   useEffect(() => {
     const fetchMenuItems = async () => {
+      const CACHE_KEY = 'menu-images-v1';
+      const cached = getCache<Array<{ id: string; label: string; href: string; image: string }>>(CACHE_KEY);
+      
+      if (cached) {
+          setMenuItems(cached);
+          return;
+      }
+
       try {
         const response = await fetch('/api/menu-images');
         if (response.ok) {
           const data = await response.json();
           setMenuItems(data);
+          setCache(CACHE_KEY, data, 60); // Cache for 1 hour
         }
       } catch (error) {
         console.error('Failed to fetch menu items:', error);
@@ -32,7 +46,8 @@ const Navbar = () => {
   useEffect(() => {
     if (isMenuOpen && menuItems.length > 0) {
       document.body.style.overflow = 'hidden';
-      setHoveredImage(menuItems[0].image);
+      // Only update if different to avoid loop
+      setHoveredImage(prev => prev !== menuItems[0].image ? menuItems[0].image : prev);
     } else {
       // Only restore default scrolling if NOT on the home page (Hero handles Home)
       if (pathname !== '/') {
@@ -42,48 +57,58 @@ const Navbar = () => {
   }, [isMenuOpen, menuItems, pathname]);
 
   return (
-    <>
-      <nav className={`navbar ${isMenuOpen ? 'is-open' : ''}`}>
-        <div className="navbar__corner navbar__corner--tl" style={{ mixBlendMode: 'difference' }}>
-          <AnimatePresence>
-            {!isMenuOpen && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.5 }}
-              >
-                <Link href="/" className="navbar__logo-link">
-                  {/* Architectural Monolith */}
-                  <div className="navbar__logo-monolith" />
+    <LazyMotion features={domAnimation}>
+      <nav className={`navbar ${isMenuOpen ? 'is-open' : ''} ${pathname === '/' ? 'navbar--home' : ''} ${isArtistDetail ? 'navbar--artist-detail' : ''}`}>
+        <div className="navbar__top-bar">
+          <div className="navbar__corner navbar__corner--tl" style={{ mixBlendMode: 'difference' }}>
+            <AnimatePresence>
+              {!isMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <Link href="/" className="navbar__logo-link">
+                    {/* Architectural Monolith */}
+                    <div className="navbar__logo-monolith" />
 
-                  {/* Typographic Block */}
-                  <div className="navbar__logo-text-group">
-                    <span className="navbar__logo-title">
-                      MELOGRAPH
-                    </span>
-                    <div className="navbar__logo-subtitle-container">
-                      <div className="navbar__logo-divider" />
-                      <span className="navbar__logo-subtitle">
-                        ARCHIVE
+                    {/* Typographic Block */}
+                    <div className="navbar__logo-text-group">
+                      <span className="navbar__logo-title">
+                        MELOGRAPH
                       </span>
+                      <div className="navbar__logo-subtitle-container">
+                        <div className="navbar__logo-divider" />
+                        <span className="navbar__logo-subtitle">
+                          ARCHIVE
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-        <div className="navbar__corner navbar__corner--tr">
-          <button className="navbar__menu-btn" onClick={toggleMenu}>
-            <div className={`navbar__icon ${isMenuOpen ? 'open' : ''}`}>
-              {isMenuOpen ? (
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-              ) : (
-                <Image src="/image.png" alt="Menu" width={48} height={48} className="music-note" style={{ filter: 'brightness(0) invert(1)' }} />
+                  </Link>
+                </motion.div>
               )}
-            </div>
-          </button>
+            </AnimatePresence>
+          </div>
+          <div className="navbar__corner navbar__corner--tr">
+            <button className="navbar__menu-btn" onClick={toggleMenu}>
+              <div className={`navbar__icon ${isMenuOpen ? 'open' : ''}`}>
+                {isMenuOpen ? (
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                ) : (
+                  <Image 
+                    src="/image.png" 
+                    alt="Menu" 
+                    width={48} 
+                    height={48} 
+                    className="music-note" 
+                    style={{ filter: 'brightness(0) invert(1)' }}
+                    priority 
+                  />
+                )}
+              </div>
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -93,7 +118,7 @@ const Navbar = () => {
             className="menu-overlay"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { delay: 1.0, duration: 0.5 } }}
+            exit={{ opacity: 0, transition: { delay: 0.2, duration: 0.5 } }}
             style={{ pointerEvents: 'auto' }} // Ensure clicks work
           >
             <div className="menu-grid">
@@ -182,7 +207,7 @@ const Navbar = () => {
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </LazyMotion>
   );
 };
 

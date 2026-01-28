@@ -1,0 +1,366 @@
+// MELOGRAPH PROFILE - MATCHING ARTIST DETAIL VIEW
+// SWISS / INDUSTRIAL STYLE
+
+.page {
+  background-color: #000;
+  color: #fff;
+  font-family: var(--font-geist-sans);
+  min-height: 100vh;
+  width: 100vw;
+  position: relative;
+  overflow-x: hidden;
+  padding-top: 80px; 
+}
+
+// Background Atmosphere (Subtle)
+.noiseOverlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  z-index: 10;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+.gridLines {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-size: 50% 100vh;
+  background-image: linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px);
+  pointer-events: none;
+}
+
+.profileWrapper {
+    position: relative;
+    z-index: 20;
+    max-width: 100%;
+    margin: 0;
+}
+
+// === HEADER SECTION (MATCHING ARTIST DETAIL HERO) ===
+.profileHeader {
+    position: relative;
+    width: 90%;
+    margin: 4rem auto 2rem auto;
+    background: #111; // Dark block instead of Orange for profile default
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 3rem;
+    min-height: 50vh;
+
+    @media (max-width: 1024px) {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto;
+        gap: 2rem;
+    }
+}
+
+.avatarWrapper {
+    width: 100%;
+    height: 100%;
+    min-height: 350px;
+    position: relative;
+    background: #000;
+    overflow: hidden;
+
+    img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        filter: grayscale(100%) contrast(1.1);
+        transition: filter 0.5s ease;
+    }
+
+    &:hover img {
+        filter: grayscale(0%);
+    }
+
+    .statusIndicator {
+        position: absolute;
+        bottom: 1rem;
+        right: 1rem;
+        background: #000;
+        color: #fff;
+        padding: 0.2rem 0.6rem;
+        font-family: var(--font-geist-mono);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        border: 1px solid #fff;
+    }
+}
+
+.infoBlock {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1rem 0;
+    
+    .topBar {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        
+        .metaLabel {
+             font-family: var(--font-geist-mono);
+             font-size: 0.8rem;
+             letter-spacing: 1px;
+             opacity: 0.6;
+             text-transform: uppercase;
+             border: 1px solid rgba(255,255,255,0.2);
+             padding: 0.2rem 0.5rem;
+        }
+
+        .actionRow {
+            display: flex;
+            gap: 1rem;
+            
+            button {
+                background: none;
+                border: 1px solid rgba(255,255,255,0.3);
+                color: #fff;
+                padding: 0.4rem 1rem;
+                text-transform: uppercase;
+                font-size: 0.8rem;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s;
+                
+                &:hover {
+                    background: #fff;
+                    color: #000;
+                }
+            }
+        }
+    }
+}
+
+.bigName {
+    font-family: var(--font-geist-sans);
+    font-size: clamp(4rem, 8vw, 10rem);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 0.8;
+    margin: 2rem 0;
+    text-transform: uppercase;
+    color: #fff;
+    word-break: break-all;
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 2rem;
+    border-top: 2px solid #fff;
+    padding-top: 1.5rem;
+    
+    .statUnit {
+        .statLabel {
+            font-family: var(--font-geist-mono);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.6;
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+        .statValue {
+            font-family: var(--font-geist-mono);
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+    }
+}
+
+
+// === NAVIGATION (TABS) ===
+.navContainer {
+    width: 90%;
+    margin: 0 auto 4rem auto;
+    border-bottom: 4px solid #fff;
+    padding-bottom: 1rem;
+    
+    .glassNav {
+        display: flex;
+        gap: 3rem;
+        
+        .navLink {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.4);
+            font-family: var(--font-geist-sans);
+            font-size: 2rem; // Big tabs
+            font-weight: 900;
+            text-transform: uppercase;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+            transition: color 0.3s ease;
+            position: relative;
+            
+            &:hover { color: rgba(255,255,255,0.8); }
+            &.active { color: #fff; }
+            
+            .indicator {
+                display: none; // No underline, just color change
+            }
+        }
+    }
+}
+
+// === GRID CONTENT ===
+.mainContent {
+    width: 90%;
+    margin: 0 auto;
+    padding-bottom: 6rem;
+}
+
+.mediaGrid {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+// MATCHING "TOP TRACKS" LIST STYLE
+.listRow {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    padding: 1.5rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    transition: background 0.2s ease;
+    cursor: pointer;
+    
+    &:hover {
+        background: rgba(255,255,255,0.03);
+        transform: translateX(10px); // Shift right like artist details
+         border-bottom-color: rgba(255,255,255,0.3);
+    }
+    
+    .rankNum {
+        font-family: var(--font-geist-sans);
+        font-size: 3rem;
+        font-weight: 900;
+        color: #333; // Dark grey for unactive
+        width: 60px;
+        line-height: 1;
+    }
+    
+    .rowImage {
+        width: 80px;
+        height: 80px;
+        background: #222;
+        
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: grayscale(100%);
+        }
+    }
+    
+    .rowInfo {
+        flex: 1;
+        h3 {
+            font-family: var(--font-geist-sans);
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin: 0;
+            text-transform: uppercase;
+        }
+        p {
+            font-family: var(--font-geist-mono);
+            font-size: 0.9rem;
+            opacity: 0.5;
+            margin: 0.4rem 0 0 0;
+            text-transform: uppercase;
+        }
+    }
+    
+    .rowDuration {
+        font-family: var(--font-geist-mono);
+        opacity: 0.4;
+        margin-right: 2rem;
+    }
+    
+    .btnPlay {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.2);
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-size: 1.2rem;
+        transition: all 0.2s;
+        
+        &:hover {
+            border-color: #fff;
+            transform: scale(1.1);
+        }
+    }
+}
+
+// === EXPLORE CARD (Bottom of list) ===
+.exploreRow {
+    margin-top: 2rem;
+    padding: 2rem;
+    border: 1px dashed rgba(255,255,255,0.2);
+    text-align: center;
+    color: rgba(255,255,255,0.4);
+    font-family: var(--font-geist-mono);
+    cursor: pointer;
+    text-transform: uppercase;
+    &:hover { border-color: #fff; color: #fff; }
+}
+
+
+// === STUDIO TABLE (Clean Table) ===
+.dashboardPanel {
+    .panelHeader {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 2rem;
+        
+        h2 { font-size: 2rem; font-weight: 900; text-transform: uppercase; margin: 0; }
+        .actionBtn {
+            border: 1px solid #fff;
+            background: #fff;
+            color: #000;
+            padding: 0.5rem 1rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            cursor: pointer;
+            &:hover { background: transparent; color: #fff; }
+        }
+    }
+    
+    .trackList .trackRow {
+         // Reusing similar styles or keeping simple
+         border-bottom: 1px solid rgba(255,255,255,0.1);
+         padding: 1rem 0;
+         display: grid;
+         grid-template-columns: 2fr 1fr 1fr 1fr;
+         align-items: center;
+         font-family: var(--font-geist-mono);
+         font-size: 0.9rem;
+         
+         .rowTitle { color: #fff; font-weight: 700; font-family: var(--font-geist-sans); }
+         .statusTag {
+             border: 1px solid #4ade80;
+             color: #4ade80;
+             display: inline-block;
+             padding: 0.2rem 0.5rem;
+             font-size: 0.7rem;
+             text-align: center;
+         }
+    }
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}

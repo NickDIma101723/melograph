@@ -33,13 +33,25 @@
 // LEFT SIDEBAR
 .sidebar {
   position: fixed;
-  left: 25%;
+  left: 28%; /* Even closer to the centered image */
   top: 50%;
   transform: translateY(-50%);
   z-index: 100;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0px; 
+  align-items: flex-start; /* Fix: Prevent buttons from stretching full width */
+}
+
+.sidebar > * {
+  /* reset default for non-mobile */
+}
+
+.filterWrapper {
+  /* Default empty, mostly acts as container */
+  position: relative;
+  margin-bottom: 0.5rem; /* Small separater */
+  z-index: 10; /* Ensure it stays above list mask */
 }
 
 .featuredBadge {
@@ -57,6 +69,19 @@
 }
 
 .artistList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  max-height: 40vh;
+  overflow-y: hidden;
+  /* Adjusted mask to start quicker */
+  mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%);
+  /* Reduced top padding significantly so items start closer to filter */
+  padding: 1rem 0 4rem 0; 
+}
+
+.listAnimationWrapper {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
@@ -80,13 +105,13 @@
     border-color: rgba(255,255,255,0.5);
     transform: translateX(10px);
   }
-  
-  &.active {
+}
+
+.active {
     color: #fff;
     font-weight: 500;
     border-color: #fff;
     transform: translateX(10px);
-  }
 }
 
 // CENTER - HERO IMAGE
@@ -125,8 +150,8 @@
 // RIGHT SIDE - NEXT ARTIST (PARTIALLY CUT OFF)
 .sideSection {
   position: absolute;
-  right: 8%;
-  bottom: -35%;
+  right: 11%; /* Moved closer to center */
+  bottom: -40%; /* Pushed down to create gap */
   width: 1000px;
   height: 1000px;
   z-index: 40;
@@ -156,17 +181,10 @@
   }
 }
 
-.indicator {
-  position: absolute;
-  bottom: 2rem;
-  right: 1rem;
-  background: rgba(255,255,255,0.95);
-  color: #000;
-  padding: 0.35rem 0.7rem;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 1px;
+.mobileArtistTitle {
+    display: none; /* Hidden on Desktop */
 }
+
 
 // MEDIA QUERIES - Scale layout proportionally at different breakpoints
 // Reference design: 3538px width, 1000px images
@@ -182,50 +200,104 @@
 // Standard desktops (1920px - 2559px)
 @media (max-width: 2559px) and (min-width: 1920px) {
   .heroImage, .sideSection {
-    width: 700px;
-    height: 700px;
+    width: 32vw; /* Converted to fluid */
+    height: 32vw;
+  }
+  
+  .sidebar {
+      left: 20%; /* Proportional positioning */
   }
 }
 
 // Laptops (1440px - 1919px)
 @media (max-width: 1919px) and (min-width: 1440px) {
-  .heroImage, .sideSection {
-    width: 550px;
-    height: 550px;
+  .heroImage  {
+    width: 38vw; /* Fluid scaling */
+    height: 38vw;
+  }
+  
+  .sideSection {
+      width: 38vw;
+      height: 38vw;
+      right: -30%; /* Increased gap */
+      bottom: -45%; /* Pushed down to avoid "sliver" look */
+  }
+  
+  .sidebar {
+      left: 3vw; /* Fluid margin */
+      width: 20vw;
   }
 }
 
 // Small laptops (1024px - 1439px)
 @media (max-width: 1439px) and (min-width: 1024px) {
-  .heroImage, .sideSection {
-    width: 400px;
-    height: 400px;
+  /* GRID-LIKE PROPORTIONAL LAYOUT */
+  
+  /* 1. Sidebar Lane */
+  .sidebar {
+      left: 2vw; /* Fully fluid spacing */
+      width: 24vw; 
+      align-items: flex-start;
+  }
+  
+  /* 2. Hero Lane - Center */
+  .heroImage {
+    width: 44vw; /* Slightly larger for impact */
+    height: 44vw;
+  }
+
+  /* 3. Right Lane - Gap Enforcement */
+  .sideSection {
+      width: 44vw; 
+      height: 44vw;
+      right: -45%; /* Pushed further off screen */
+      bottom: -45%; /* Pushed further down */
   }
   
   .artistButton {
-    font-size: 0.85rem;
+    font-size: clamp(0.75rem, 1.2vw, 1rem); /* Fluid typography */
     padding: 0.25rem 0.6rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; 
+    max-width: 100%;
   }
 }
 
 // Tablets (768px - 1023px)
 @media (max-width: 1023px) and (min-width: 768px) {
+  
+  /* Force true center for tablet */
+  .heroSection {
+      left: 50%; 
+  }
+
   .heroImage {
-    width: 400px;
-    height: 400px;
+    width: 55vw; /* Increased size significantly */
+    height: 55vw; /* Maintain aspect ratio */
   }
   
   .sideSection {
-    display: none;
+    display: block; 
+    width: 55vw;
+    height: 55vw;
+    right: -60%; /* Aggressively push off screen */
+    bottom: -50%; /* Push deep down to avoid corner clipping */
   }
   
   .sidebar {
-    left: 5%;
+    left: 2vw; /* Fluid left margin */
+    width: 25vw; /* Give list more breathing room */
+    align-items: flex-start;
   }
   
   .artistButton {
-    font-size: 0.75rem;
-    padding: 0.2rem 0.5rem;
+    font-size: 0.85rem;
+    padding: 0.2rem 0.4rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
   }
   
   .featuredBadge {
@@ -236,26 +308,123 @@
 
 // Mobile (below 768px)
 @media (max-width: 767px) {
+  .heroSection {
+      left: 50%; /* Perfect center */
+      top: 35%; /* Mid-upper screen */
+      flex-direction: column; /* Allow stacking title below image */
+      gap: 1rem;
+  }
+  
+  .mobileArtistTitle {
+      display: block;
+      font-size: clamp(2rem, 8vw, 3.5rem);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: -1px;
+      line-height: 0.9;
+      text-align: left;
+      width: 100%;
+      margin-top: 0.5rem;
+      /* Ensure it aligns with image left edge if possible, or center */
+      align-self: flex-start; 
+      padding-left: 0; 
+  }
+
   .heroImage {
-    width: 280px;
-    height: 280px;
+    width: 90vw;
+    height: 90vw;
+    max-width: 500px;
+    max-height: 500px;
   }
   
   .sideSection {
     display: none;
   }
   
+  .sideImage {
+      width: 100%;
+      height: 100%;
+  }
+
   .sidebar {
-    left: 5%;
+    left: 1.5rem; /* Strictly anchor to left */
+    width: auto; /* Allow auto width for vertical list */
+    transform: none; 
+    bottom: auto; /* Remove bottom anchor */
+    top: 62%; /* Position BELOW the image/title block */
+    right: auto;
+    gap: 0.5rem; 
+    pointer-events: none; 
+    align-items: flex-start; /* Ensure items align left */
+    padding-bottom: 2rem;
+    height: 35vh; /* Limit height */
   }
   
+  .sidebar > * {
+    pointer-events: auto;
+  }
+  
+  .filterWrapper {
+     order: -1; 
+     width: auto; /* Auto width */
+     display: flex;
+     justify-content: flex-start; 
+     padding-left: 0; 
+     margin-bottom: 0.5rem;
+     
+     button {
+         padding: 0.5rem 0;
+         font-size: 0.8rem;
+     }
+  }
+  
+  .artistList {
+      max-height: 100%; /* Vertical limit */
+      padding: 0;
+      width: 100%;
+      overflow-x: hidden; 
+      overflow-y: auto; /* Vertical Scroll */
+      flex-direction: column; /* VERTICAL LIST */
+      display: flex; 
+      justify-content: flex-start; 
+      
+      /* Vertical Mask */
+      mask-image: linear-gradient(to bottom, black 85%, transparent);
+      -webkit-mask-image: linear-gradient(to bottom, black 85%, transparent);
+  }
+  
+  /* The internal wrapper generated by AnimatePresence needs to flow Vertically */
+  .listAnimationWrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem; /* Space between names */
+      padding: 0; 
+      padding-bottom: 2rem; 
+  }
+  
+  /* Buttons should be standard labels */
   .artistButton {
-    font-size: 0.65rem;
-    padding: 0.15rem 0.4rem;
+    font-size: 1.0rem; /* Larger for easy tapping */
+    width: auto;
+    white-space: nowrap;
+    padding: 0.2rem 0;
+    text-align: left; /* Left align text */
+    
+    &:hover {
+        transform: none;
+    }
+  }
+
+  /* Active state mobile adjustment */
+  .active {
+      transform: none;
+      border: 1px solid transparent; /* Reset border */
+      border-left: 2px solid #fff; /* Left border indicator like desktop */
+      padding-left: 0.5rem; /* Indent active */
   }
   
   .featuredBadge {
-    font-size: 0.45rem;
+    font-size: 0.6rem;
     padding: 0.25rem 0.4rem;
   }
   
