@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import sql from '@/lib/db';
-import { ROSTER, fetchArtistData } from '@/lib/artist-data';
+import { fetchArtistData } from '@/lib/artist-data';
+import { ROSTER } from '@/lib/constants';
 
 // Increase timeout for seeding
 export const maxDuration = 300; 
