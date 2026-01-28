@@ -11,9 +11,18 @@ class Settings(BaseSettings):
 settings = Settings()
 
 # FIX: Force the URL to use the async driver
-connection_string = settings.neon_db_url.replace("postgresql://", "postgresql+asyncpg://")
+# Old/Current version
+# New/Fixed version
+connection_string = str(settings.neon_db_url).replace(
+    "postgresql://", "postgresql+asyncpg://"
+).replace("?sslmode=require", "")  # <--- Removes the crashing part
 
-engine = create_async_engine(connection_string, echo=False, future=True)
+engine = create_async_engine(
+    connection_string, 
+    connect_args={"ssl": "require"},  # <--- Re-adds SSL in a way asyncpg understands
+    echo=False, 
+    future=True
+)
 
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
