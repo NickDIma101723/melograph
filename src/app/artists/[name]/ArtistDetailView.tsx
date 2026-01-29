@@ -540,8 +540,29 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
       
       {/* Mobile Logo Independent of Nav */}
       <div className={styles.mobileLogoContainer}>
-         <div style={{ width: '8px', height: '8px', background: '#fff' }} />
-         <span style={{ fontWeight: 800, letterSpacing: '-1px', fontSize: '1.2rem', color: '#fff' }}>MELOGRAPH</span>
+         <svg
+            width="32"
+            height="32"
+            viewBox="0 0 32 32"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            style={{ marginRight: '8px' }}
+         >
+           <path
+             d="M2 22C4 22 7 12 9 12C11 12 14 26 14 26C14 26 19 8 22 8C25 8 29 20 30 24"
+             stroke="white"
+             strokeWidth="3"
+             strokeLinecap="round"
+             strokeLinejoin="round"
+           />
+         </svg>
+         <span style={{ 
+            fontWeight: 800, 
+            letterSpacing: '-1px', 
+            fontSize: '1.2rem', 
+            color: '#fff',
+            fontFamily: 'var(--font-geist-mono)' // Ensure consistent font
+         }}>MELOGRAPH</span>
       </div>
         
         {/* LEFT SIDE - IMAGE */}
