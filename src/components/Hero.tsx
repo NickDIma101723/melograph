@@ -597,7 +597,11 @@ export default function Hero() {
           transition={{ duration: 0.8, delay: 0.9, ease: "easeOut" }}
           style={{ '--card-bg': activeArtist.cardColor } as React.CSSProperties}
         >
-          <div className="music-card__artwork">
+          <div 
+            className="music-card__artwork" 
+            onClick={openModal} 
+            style={{ cursor: 'pointer' }}
+          >
             <Image 
               src={activeArtist.artwork} 
               alt={`${activeArtist.song} - Artwork`}
@@ -608,7 +612,7 @@ export default function Hero() {
               loading="lazy" 
             />
             <div className="music-card__overlay">
-              <button className="music-card__play-btn" onClick={openModal}>
+              <button className="music-card__play-btn">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M8 5v14l11-7z" />
                 </svg>

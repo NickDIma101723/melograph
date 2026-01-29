@@ -245,7 +245,6 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
       // Toggle Pause if clicking same active track
       if (currentTrackId === song.trackId) {
           if (isPlaying) {
-              // Pause whichever is playing
               if (isFallbackPlaying) {
                    audioFallbackRef.current?.pause();
               } else {
@@ -253,7 +252,6 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
               }
               setIsPlaying(false);
           } else {
-              // Resume whichever was active
               if (isFallbackPlaying) {
                    audioFallbackRef.current?.play();
               } else {
@@ -267,7 +265,7 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
       // Stop Previous
       setIsPlaying(false);
       setIsFallbackPlaying(false);
-      playerRef.current?.pauseVideo(); 
+      playerRef.current?.stopVideo(); // Stop any finding/playing
       if (audioFallbackRef.current) {
           audioFallbackRef.current.pause();
           audioFallbackRef.current.currentTime = 0;
@@ -277,33 +275,30 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
       setIsLoading(true);
       setCurrentTrackId(song.trackId);
       
+      // Strategy: Client-Side YouTube Search via Playlist API
+      // This bypasses server-side scraping limitations completely by letting the 
+      // user's browser resolve the "Search" directly in the iframe.
       try {
-          // Fetch YouTube ID from our API with timeout
           const query = `${song.artistName} - ${song.trackName} Official Audio`;
-          
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 6000); // Reduced to 6s for faster fallback
-          
-          const res = await fetch(`/api/youtube/?q=${encodeURIComponent(query)}`, {
-            signal: controller.signal
-          }); 
-          clearTimeout(timeoutId);
-          
-          if (!res.ok) {
-            throw new Error(`API Error: ${res.status}`);
-          }
+          console.log(`Searching Client-Side: ${query}`);
 
-          const data = await res.json();
-          if (data.videoId) {
-              console.log(`Playing via YouTube: ${query}`);
-              setVideoId(data.videoId);
-              setIsPlaying(true); 
-              setIsFallbackPlaying(false);
+          if (playerRef.current && typeof playerRef.current.loadPlaylist === 'function') {
+               // Load a "Search" playlist and play the first result
+               playerRef.current.loadPlaylist({
+                   list: query,
+                   listType: 'search',
+                   index: 0,
+                   startSeconds: 0
+               });
+               playerRef.current.setLoop(false); // Can't loop a search playlist safely
+               setIsPlaying(true);
+               setIsLoading(false);
+               setVideoId('search'); // Dummy state to indicate active
           } else {
-             throw new Error("No video ID");
+              throw new Error("Player not ready");
           }
       } catch (err) {
-          console.warn("YouTube API failed, falling back to iTunes Preview:", err);
+          console.warn("Client-side search failed, falling back to iTunes Preview:", err);
           
           // Fallback to iTunes Preview URL
           if (song.previewUrl && audioFallbackRef.current) {
@@ -312,7 +307,7 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
                   await audioFallbackRef.current.play();
                   setIsPlaying(true);
                   setIsFallbackPlaying(true);
-                  setVideoId(null); // Clear video
+                  setVideoId(null);
               } catch (e) {
                   console.error("Fallback playback failed", e);
                   alert("Unable to play this track.");
@@ -323,7 +318,6 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
               alert("Playback unavailable for this track.");
               setCurrentTrackId(null);
           }
-      } finally {
           setIsLoading(false);
       }
   };
@@ -546,8 +540,29 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
       
       {/* Mobile Logo Independent of Nav */}
       <div className={styles.mobileLogoContainer}>
-         <div style={{ width: '8px', height: '8px', background: '#fff' }} />
-         <span style={{ fontWeight: 800, letterSpacing: '-1px', fontSize: '1.2rem', color: '#fff' }}>MELOGRAPH</span>
+         <svg
+            width="32"
+            height="32"
+            viewBox="0 0 32 32"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            style={{ marginRight: '8px' }}
+         >
+           <path
+             d="M2 22C4 22 7 12 9 12C11 12 14 26 14 26C14 26 19 8 22 8C25 8 29 20 30 24"
+             stroke="white"
+             strokeWidth="3"
+             strokeLinecap="round"
+             strokeLinejoin="round"
+           />
+         </svg>
+         <span style={{ 
+            fontWeight: 800, 
+            letterSpacing: '-1px', 
+            fontSize: '1.2rem', 
+            color: '#fff',
+            fontFamily: 'var(--font-geist-mono)' // Ensure consistent font
+         }}>MELOGRAPH</span>
       </div>
         
         {/* LEFT SIDE - IMAGE */}
@@ -809,14 +824,21 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
       {/* HIDDEN YOUTUBE PLAYER & AUDIO FALLBACK */}
       <div style={{ display: 'none' }}>
         <audio ref={audioFallbackRef} />
-        {videoId && (
-            <YouTube 
-                videoId={videoId} 
-                opts={{ height: '0', width: '0', playerVars: { autoplay: 1 } }}
-                onReady={onPlayerReady}
-                onStateChange={onPlayerStateChange}
-            />
-        )}
+        {/* Always render player to ensure ref is ready for client-side search */}
+        <YouTube 
+            opts={{ 
+                height: '0', 
+                width: '0', 
+                playerVars: { 
+                    autoplay: 1, 
+                    playsinline: 1,
+                    controls: 0,
+                    disablekb: 1
+                } 
+            }}
+            onReady={onPlayerReady}
+            onStateChange={onPlayerStateChange}
+        />
       </div>
 
       <style jsx global>{`
