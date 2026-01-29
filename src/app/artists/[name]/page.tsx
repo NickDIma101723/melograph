@@ -92,7 +92,7 @@ const LISTENER_COUNTS: Record<string, number> = {
   'aphex%20twin': 2800000,
   'bjork': 1900000,
   'fka%20twigs': 2400000,
-  'manos': 4200000, // Custom
+  'bad%20bunny': 83000000,
   'sombr': 56787587,
 };
 

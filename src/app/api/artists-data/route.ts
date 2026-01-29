@@ -8,7 +8,7 @@ export const maxDuration = 60; // Allow 60s timeout if supported
 
 const ROSTER = [
   'Kendrick Lamar',
-  'Manos', 
+  'Bad Bunny', 
   'Sombr',
   'Frank Ocean',
   'Juice WRLD',
@@ -59,7 +59,6 @@ async function fetchArtistData(name: string): Promise<ArtistData | null> {
     // Custom Search Terms
     let query = name;
     if (name === 'Kendrick Lamar') query = 'Kendrick Lamar Not Like Us';
-    if (name === 'Manos') query = 'Manos Baby'; 
     if (name === 'Sombr') query = 'Sombr Back to Being Friends';
 
     const MAX_RETRIES = 3;
@@ -101,21 +100,6 @@ async function fetchArtistData(name: string): Promise<ArtistData | null> {
                 continue;
             }
 
-
-            // Manos Fallback
-            if (!songResult && name === 'Manos') {
-                return {
-                    idArtist: 'manos-manual',
-                    strArtist: 'Manos',
-                    strGenre: 'Hit Single',
-                    strStyle: 'Baby',
-                    strArtistThumb: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=1200', 
-                    strBiographyEN: '',
-                    previewUrl: undefined,
-                    isVideo: false
-                };
-            }
-
             if (songResult) {
                 // 2. Try to find Video URL (iTunes)
                 let videoUrl = undefined;
@@ -144,7 +128,7 @@ async function fetchArtistData(name: string): Promise<ArtistData | null> {
                 } catch(e) { /* ignore */ }
 
                 let youtubeId = undefined;
-                if ((!isVideo) || (name.toLowerCase().includes('sombr') || name.toLowerCase().includes('manos'))) {
+                if ((!isVideo) || (name.toLowerCase().includes('sombr'))) {
                     try {
                         const ytQuery = `${songResult?.artistName || name} ${songResult?.trackName || ''} official music video`;
                         

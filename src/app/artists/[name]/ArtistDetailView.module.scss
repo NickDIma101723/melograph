@@ -490,6 +490,8 @@
 
 .albumsContainer {
   padding-right: 5%;
+  overscroll-behavior-x: contain; /* Prevents swipe navigation */
+  overscroll-behavior-y: none;    /* Prevents scroll chaining globally */
 }
 
 .scrollMode {

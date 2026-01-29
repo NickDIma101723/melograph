@@ -3,12 +3,15 @@
 
 .page {
   min-height: 100vh;
+  width: 100vw;
   background-color: #000000;
   color: #eeeeee;
   font-family: var(--font-geist-sans);
   padding: 0;
-  overflow-x: hidden;
   position: relative;
+  
+  // Allow body scroll for Lenis
+  overflow-x: hidden;
 }
 
 // Fixed Backgrounds (Matching Artists Page)
