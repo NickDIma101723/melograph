@@ -275,30 +275,34 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
       setIsLoading(true);
       setCurrentTrackId(song.trackId);
       
-      // Strategy: Client-Side YouTube Search via Playlist API
-      // This bypasses server-side scraping limitations completely by letting the 
-      // user's browser resolve the "Search" directly in the iframe.
+      // Strategy: Server-Side Search via our own API
+      // This is more reliable than the client-side iframe search
       try {
           const query = `${song.artistName} - ${song.trackName} Official Audio`;
-          console.log(`Searching Client-Side: ${query}`);
+          console.log(`Searching API: ${query}`);
+          
+          const res = await fetch(`/api/youtube?q=${encodeURIComponent(query)}`);
+          if (!res.ok) throw new Error("API Search Failed");
+          
+          const data = await res.json();
+          if (!data.videoId) throw new Error("No video ID returned");
 
-          if (playerRef.current && typeof playerRef.current.loadPlaylist === 'function') {
-               // Load a "Search" playlist and play the first result
-               playerRef.current.loadPlaylist({
-                   list: query,
-                   listType: 'search',
-                   index: 0,
+          console.log(`Playing [${data.source}]: ${data.videoId}`);
+
+          if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
+               playerRef.current.loadVideoById({
+                   videoId: data.videoId,
                    startSeconds: 0
                });
-               playerRef.current.setLoop(false); // Can't loop a search playlist safely
+               playerRef.current.setLoop(false);
                setIsPlaying(true);
                setIsLoading(false);
-               setVideoId('search'); // Dummy state to indicate active
+               setVideoId(data.videoId);
           } else {
               throw new Error("Player not ready");
           }
       } catch (err) {
-          console.warn("Client-side search failed, falling back to iTunes Preview:", err);
+          console.warn("Full song search failed, falling back to iTunes Preview:", err);
           
           // Fallback to iTunes Preview URL
           if (song.previewUrl && audioFallbackRef.current) {

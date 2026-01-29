@@ -152,7 +152,7 @@ async function fetchArtistData(name: string): Promise<ArtistData | null> {
                     strArtist: name,
                     strGenre: songResult.primaryGenreName || 'Music',
                     strStyle: songResult.trackName,
-                    strArtistThumb: songResult.artworkUrl100?.replace('100x100bb', '1200x1200bb'),
+                    strArtistThumb: songResult.artworkUrl100?.replace('100x100bb', '600x600bb'),
                     previewUrl: videoUrl || songResult.previewUrl,
                     isVideo: isVideo,
                     youtubeId: youtubeId,
