@@ -208,14 +208,17 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
   const [isLoading, setIsLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
 
-  // YouTube Player Ref
+  // YouTube and Audio Fallback Refs
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const playerRef = useRef<any>(null);
+  const audioFallbackRef = useRef<HTMLAudioElement | null>(null);
+  const [isFallbackPlaying, setIsFallbackPlaying] = useState(false);
 
   useEffect(() => {
       let interval: NodeJS.Timeout;
       if (isPlaying && playerRef.current) {
           interval = setInterval(() => {
+              // YouTube Progress
               if (typeof playerRef.current.getCurrentTime === 'function') {
                   setCurrentTime(playerRef.current.getCurrentTime());
               }
@@ -224,30 +227,62 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
       return () => clearInterval(interval);
   }, [isPlaying]);
 
+  // Handle Audio Fallback Ends
+  useEffect(() => {
+      const audio = audioFallbackRef.current;
+      if (!audio) return;
+      
+      const handleEnded = () => {
+          setIsPlaying(false);
+          setIsFallbackPlaying(false);
+      };
+      
+      audio.addEventListener('ended', handleEnded);
+      return () => audio.removeEventListener('ended', handleEnded);
+  }, []);
+
   const playFullSong = async (song: any) => {
       // Toggle Pause if clicking same active track
       if (currentTrackId === song.trackId) {
           if (isPlaying) {
-              playerRef.current?.pauseVideo();
+              // Pause whichever is playing
+              if (isFallbackPlaying) {
+                   audioFallbackRef.current?.pause();
+              } else {
+                   playerRef.current?.pauseVideo();
+              }
               setIsPlaying(false);
           } else {
-              playerRef.current?.playVideo();
+              // Resume whichever was active
+              if (isFallbackPlaying) {
+                   audioFallbackRef.current?.play();
+              } else {
+                   playerRef.current?.playVideo();
+              }
               setIsPlaying(true);
           }
           return;
       }
 
+      // Stop Previous
+      setIsPlaying(false);
+      setIsFallbackPlaying(false);
+      playerRef.current?.pauseVideo(); 
+      if (audioFallbackRef.current) {
+          audioFallbackRef.current.pause();
+          audioFallbackRef.current.currentTime = 0;
+      }
+
       // Start New Track
       setIsLoading(true);
       setCurrentTrackId(song.trackId);
-      setIsPlaying(false); // Wait for load
-
+      
       try {
           // Fetch YouTube ID from our API with timeout
           const query = `${song.artistName} - ${song.trackName} Official Audio`;
           
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+          const timeoutId = setTimeout(() => controller.abort(), 6000); // Reduced to 6s for faster fallback
           
           const res = await fetch(`/api/youtube/?q=${encodeURIComponent(query)}`, {
             signal: controller.signal
@@ -255,40 +290,39 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
           clearTimeout(timeoutId);
           
           if (!res.ok) {
-            const errorData = await res.json().catch(() => ({}));
-            console.error('API Error:', res.status, errorData);
-            
-            if (res.status === 404) {
-              console.warn(`No video found for: ${query}`);
-              alert(`Sorry, no video found for "${song.trackName}"`);
-            } else {
-              throw new Error(`API Error: ${res.status}`);
-            }
-            setCurrentTrackId(null);
-            return;
+            throw new Error(`API Error: ${res.status}`);
           }
 
           const data = await res.json();
           if (data.videoId) {
-              console.log(`Playing: ${query} (${data.source})`);
+              console.log(`Playing via YouTube: ${query}`);
               setVideoId(data.videoId);
-              setIsPlaying(true); // Player will autoplay
+              setIsPlaying(true); 
+              setIsFallbackPlaying(false);
           } else {
-             console.warn("No videoId in response for", query);
-             alert(`Unable to play "${song.trackName}"`);
-             setCurrentTrackId(null);
+             throw new Error("No video ID");
           }
       } catch (err) {
-          if (err instanceof Error) {
-            if (err.name === 'AbortError') {
-              console.error("Playback request timed out");
-              alert("Request timed out. Please try again.");
-            } else {
-              console.error("Playback failed:", err.message);
-              alert("Failed to load video. Please try again.");
-            }
+          console.warn("YouTube API failed, falling back to iTunes Preview:", err);
+          
+          // Fallback to iTunes Preview URL
+          if (song.previewUrl && audioFallbackRef.current) {
+              audioFallbackRef.current.src = song.previewUrl;
+              try {
+                  await audioFallbackRef.current.play();
+                  setIsPlaying(true);
+                  setIsFallbackPlaying(true);
+                  setVideoId(null); // Clear video
+              } catch (e) {
+                  console.error("Fallback playback failed", e);
+                  alert("Unable to play this track.");
+                  setCurrentTrackId(null);
+                  setIsPlaying(false);
+              }
+          } else {
+              alert("Playback unavailable for this track.");
+              setCurrentTrackId(null);
           }
-          setCurrentTrackId(null);
       } finally {
           setIsLoading(false);
       }
@@ -772,8 +806,9 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
          </motion.div>
       </section>
 
-      {/* HIDDEN YOUTUBE PLAYER */}
+      {/* HIDDEN YOUTUBE PLAYER & AUDIO FALLBACK */}
       <div style={{ display: 'none' }}>
+        <audio ref={audioFallbackRef} />
         {videoId && (
             <YouTube 
                 videoId={videoId} 
