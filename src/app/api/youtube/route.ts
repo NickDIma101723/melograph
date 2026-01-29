@@ -10,18 +10,24 @@ async function tryInvidiousInstances(query: string) {
     'https://invidious.jing.rocks',
     'https://inv.nadeko.net',
     'https://invidious.protokolla.fi',
-    'https://invidious.privacyredirect.com'
+    'https://invidious.privacyredirect.com',
+    'https://yt.artemislena.eu',
+    'https://invidious.projectsegfau.lt',
+    'https://invidious.drgns.space'
   ];
 
   for (const instance of instances) {
     try {
       const invidiousUrl = `${instance}/api/v1/search?q=${encodeURIComponent(query)}&type=video`;
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const timeoutId = setTimeout(() => controller.abort(), 2500); // Shorter individual timeout to try more
       
       const resInv = await fetch(invidiousUrl, { 
         signal: controller.signal,
-        headers: { 'Accept': 'application/json' }
+        headers: { 
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
       });
       clearTimeout(timeoutId);
       
@@ -33,7 +39,7 @@ async function tryInvidiousInstances(query: string) {
         }
       }
     } catch(e) {
-      console.warn(`Invidious instance ${instance} failed:`, e instanceof Error ? e.message : 'unknown');
+      // Quietly continue
       continue;
     }
   }

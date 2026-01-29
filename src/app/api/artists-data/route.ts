@@ -188,13 +188,23 @@ export async function GET() {
   console.log('[ArtistsAPI] Fetching fresh data (Concurrent)...');
   
   try {
-      // Concurrency Limit - Lower is safer
-      const CONCURRENCY = 2;
+      // Netlify/Serverless Timeout Safety
+      // Stop processing new requests after 8000ms to ensure we return a response before the 10s hard limit
+      const TIME_LIMIT = 8000;
+      const startTime = Date.now();
+      
+      const CONCURRENCY = 3; // Slight increase since we have a global timeout now
       const queue = [...ROSTER].map((name, index) => ({ name, index }));
-      const results = new Array(ROSTER.length);
+      const results = new Array(ROSTER.length).fill(null);
 
       const worker = async () => {
           while(queue.length > 0) {
+              // Check time limit
+              if (Date.now() - startTime > TIME_LIMIT) {
+                  console.warn('[ArtistsAPI] Time limit reached, stopping worker.');
+                  break;
+              }
+
               const item = queue.shift();
               if (!item) break;
               try {
@@ -214,6 +224,8 @@ export async function GET() {
       if (validArtists.length > 0) {
            globalCache = { data: validArtists, timestamp: Date.now() };
       }
+      
+      console.log(`[ArtistsAPI] Completed with ${validArtists.length} artists in ${Date.now() - startTime}ms`);
 
       return NextResponse.json(validArtists, {
           headers: {
@@ -222,6 +234,7 @@ export async function GET() {
       });
   } catch (error) {
       console.error('[ArtistsAPI] Critical Error:', error);
-      return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
+      // Return empty array instead of 500 to allow client fallback
+      return NextResponse.json([], { status: 200 }); 
   }
 }
