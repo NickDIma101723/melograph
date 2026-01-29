@@ -522,8 +522,7 @@ export default function Hero() {
           </div>
         )}
         
-        {!isMobile && (
-          <div className="hero__content">
+        <div className="hero__content">
           <motion.div 
             className="hero__title-massive"
             key={`title-${activeArtist.id}`}
@@ -544,7 +543,6 @@ export default function Hero() {
             {activeArtist.genre.toUpperCase()} EXPERIENCE
           </motion.div>
         </div>
-        )}
 
         {/* Hidden YouTube Player for Audio */}
         <div style={{ display: 'none' }}>

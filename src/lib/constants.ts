@@ -1,6 +1,6 @@
 export const ROSTER = [
   'Kendrick Lamar',
-  'Manos', 
+  'Bad Bunny', 
   'Sombr',
   'Frank Ocean',
   'Juice WRLD',

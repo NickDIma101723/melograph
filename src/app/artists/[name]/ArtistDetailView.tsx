@@ -243,26 +243,51 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
       setIsPlaying(false); // Wait for load
 
       try {
-          // Fetch YouTube ID from our API
+          // Fetch YouTube ID from our API with timeout
           const query = `${song.artistName} - ${song.trackName} Official Audio`;
-          const res = await fetch(`/api/youtube/?q=${encodeURIComponent(query)}`); 
+          
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+          
+          const res = await fetch(`/api/youtube/?q=${encodeURIComponent(query)}`, {
+            signal: controller.signal
+          }); 
+          clearTimeout(timeoutId);
           
           if (!res.ok) {
-            console.error('API Error:', res.status, res.statusText);
-            throw new Error(`API Error: ${res.status}`);
+            const errorData = await res.json().catch(() => ({}));
+            console.error('API Error:', res.status, errorData);
+            
+            if (res.status === 404) {
+              console.warn(`No video found for: ${query}`);
+              alert(`Sorry, no video found for "${song.trackName}"`);
+            } else {
+              throw new Error(`API Error: ${res.status}`);
+            }
+            setCurrentTrackId(null);
+            return;
           }
 
-          
           const data = await res.json();
           if (data.videoId) {
+              console.log(`Playing: ${query} (${data.source})`);
               setVideoId(data.videoId);
               setIsPlaying(true); // Player will autoplay
           } else {
-             console.warn("No video found for", query);
-             // Fallback?
+             console.warn("No videoId in response for", query);
+             alert(`Unable to play "${song.trackName}"`);
+             setCurrentTrackId(null);
           }
       } catch (err) {
-          console.error("Playback failed", err);
+          if (err instanceof Error) {
+            if (err.name === 'AbortError') {
+              console.error("Playback request timed out");
+              alert("Request timed out. Please try again.");
+            } else {
+              console.error("Playback failed:", err.message);
+              alert("Failed to load video. Please try again.");
+            }
+          }
           setCurrentTrackId(null);
       } finally {
           setIsLoading(false);
@@ -315,26 +340,94 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
 
   const onWheel = (e: React.WheelEvent) => {
     if (viewMode === 'scroll' && scrollContainerRef.current) {
-        // Native horizontal scroll (trackpad) works automatically with overflow-x: auto
-        // We only hijack vertical scroll (mouse wheel) to convert to horizontal
-        if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && e.deltaY !== 0) {
-            // Important: Sync start position if loop isn't running to prevent jumps
-            if (rafId.current === null) {
-                targetScroll.current = scrollContainerRef.current.scrollLeft;
-            }
+        // Only hijack vertical scroll if the content overflows horizontally
+        const isOverflowing = scrollContainerRef.current.scrollWidth > scrollContainerRef.current.clientWidth;
 
-            // Slower multiplier: 0.7 (was 1.2) - More precise control
-            targetScroll.current += e.deltaY * 0.7; 
+        if (isOverflowing) {
+            // Standardize scrolling: Always prevent page vertical scroll if we are interacting with this container
+            // UNLESS it's a pure horizontal trackpad swipe which browsers handle naturally
             
-            const maxScroll = scrollContainerRef.current.scrollWidth - scrollContainerRef.current.clientWidth;
-            targetScroll.current = Math.max(0, Math.min(targetScroll.current, maxScroll));
+            const isVerticalScroll = Math.abs(e.deltaY) > Math.abs(e.deltaX);
             
-            if (rafId.current === null) {
-                rafId.current = requestAnimationFrame(smoothScrollLoop);
+            if (isVerticalScroll && e.deltaY !== 0) {
+                 // HIJACK: Convert vertical wheel to horizontal scroll
+                 
+                 const currentScroll = targetScroll.current;
+                 const maxScroll = scrollContainerRef.current.scrollWidth - scrollContainerRef.current.clientWidth;
+
+                 // Logic: If at edge, normally we'd return to allow page scroll
+                 // BUT user requested "not when i scroll left that it goes up"
+                 // So we will clamp and consume the event even at edges to prevent accidental vertical jumps
+                 
+                 // However, we need a way to escape. The user can simply move mouse out of the area.
+                 
+                 if (rafId.current === null) {
+                     targetScroll.current = scrollContainerRef.current.scrollLeft;
+                 }
+                 
+                 targetScroll.current += e.deltaY * 0.7; // Speed factor
+                 targetScroll.current = Math.max(0, Math.min(targetScroll.current, maxScroll));
+                 
+                 if (rafId.current === null) {
+                    rafId.current = requestAnimationFrame(smoothScrollLoop);
+                 }
             }
         }
     }
   };
+
+  // Dedup Albums by Name
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const uniqueAlbums = React.useMemo(() => {
+      if (!data?.albums) return [];
+      const seen = new Set();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return data.albums.filter((a: any) => {
+          const key = a.collectionName.toLowerCase().replace(/\s*\(.*?\)\s*/g, ''); // Remove (Deluxe), (clean) etc
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+      });
+  }, [data.albums]);
+
+  // Derived Statistics
+  const artistStats = React.useMemo(() => {
+      if (!data) return null;
+
+      // 1. Years Active (Start Year)
+      let startYear;
+      if (data.albums && data.albums.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const years = data.albums.map((a: any) => new Date(a.releaseDate).getFullYear());
+        startYear = Math.min(...years);
+      }
+      const activeYears = startYear && !isNaN(startYear) ? `${startYear} — Present` : 'Unknown';
+
+      // 2. Record Label
+      let label = 'Independent';
+      if (data.albums && data.albums.length > 0) {
+         // Usually copyright info is in the most recent album
+         // Albums are already sorted newest first in the data fetcher
+         const latestDetails = data.albums[0];
+         if (latestDetails.copyright) {
+            // Remove "℗ 2024 " prefix if present to just get the name
+            label = latestDetails.copyright.replace(/℗\s*\d{4}\s*/, '').replace(/^Copyright \d{4}\s*/, '');
+            // Truncate if too long
+            if (label.length > 40) label = label.substring(0, 40) + '...';
+         }
+      }
+
+      // 3. Origin
+      const origin = data.info.country === 'USA' ? 'United States' : (data.info.country || 'International');
+
+      return {
+          years: activeYears,
+          origin: origin,
+          label: label
+      };
+
+  }, [data]);
+
 
   return (
     <div className={styles.container}>
@@ -488,9 +581,9 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
       >
          {[
            { label: 'Primary Genre', val: data.info.primaryGenreName },
-           { label: 'Years Active', val: '2010 — 2026' }, 
-           { label: 'Origin', val: data.info.country || 'International' },
-           { label: 'Record Label', val: 'Universal Music' } 
+           { label: 'Years Active', val: artistStats?.years || 'Unknown' }, 
+           { label: 'Origin', val: artistStats?.origin || 'International' },
+           { label: 'Record Label', val: artistStats?.label || 'Indie' } 
          ].map((stat, i) => (
            <div key={i} className={styles.statItem}>
               <span className={styles.statLabel}>
@@ -525,8 +618,8 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
                  onClick={() => playFullSong(song)}
                  initial={{ opacity: 0, y: 10 }}
                  whileInView={{ opacity: 1, y: 0 }}
-                 viewport={{ once: true }}
-                 transition={{ delay: i * 0.05 }}
+                 viewport={{ once: true, margin: "100px" }}
+                 transition={{ duration: 0.3, delay: i * 0.03 }}
                  className={`${styles.trackRow} ${isActive ? styles.active : ''} ${isLoadingThis ? styles.loading : ''}`}
                  style={{
                     '--local-theme': themeColor
@@ -570,12 +663,14 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
                              )}
                         </div>
 
-                        {/* 2. IMAGE (High Res) */}
+                        {/* 2. IMAGE (Optimized Size) */}
                         <div className={styles.trackImage}>
                              <Image 
-                                src={song.artworkUrl100?.replace('100x100', '600x600')}
+                                src={song.artworkUrl100}
                                 alt="Art"
                                 fill
+                                sizes="50px"
+                                priority={i < 4}
                              />
                         </div>
 
@@ -642,7 +737,7 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
              className={`${styles.albumsContainer} ${viewMode === 'scroll' ? styles.scrollMode : styles.gridMode}`}
          >
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {data.albums.map((album: any, i: number) => (
+            {uniqueAlbums.map((album: any, i: number) => (
                <motion.div 
                  key={album.collectionId}
                  initial={{ opacity: 0, scale: 0.9 }}

@@ -2,14 +2,34 @@ from fastapi import FastAPI, HTTPException, Depends
 from sqlmodel import Field, SQLModel, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.engine.url import make_url # <--- Added this import
 from pydantic_settings import BaseSettings
-from typing import Optional
+from typing import Optional, AsyncGenerator
 
 class Settings(BaseSettings):
     neon_db_url: str
 
-settings = Settings(_env_file=None)
-engine = create_async_engine(settings.neon_db_url, echo=False, future=True)
+settings = Settings()
+
+# --- FIX START: robustly handle the connection string ---
+# 1. Parse the string into a URL object
+url = make_url(settings.neon_db_url)
+
+# 2. Switch the driver to asyncpg
+url = url.set(drivername="postgresql+asyncpg")
+
+# 3. Remove ALL query parameters (sslmode, channel_binding, etc)
+#    This guarantees no junk is left at the end of the database name.
+url = url.set(query={})
+
+# 4. Create the engine, passing SSL explicitly
+engine = create_async_engine(
+    url,
+    connect_args={"ssl": "require"}, 
+    echo=False, 
+    future=True
+)
+# --- FIX END ---
 
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -17,11 +37,9 @@ class User(SQLModel, table=True):
     email: str
     full_name: Optional[str] = None
 
-SQLModel.metadata.create_all(bind=engine)
-
 app = FastAPI(title="Melobase API")
 
-async def get_session() -> AsyncSession:
+async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSession(engine) as session:
         yield session
 

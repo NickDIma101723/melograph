@@ -22,7 +22,7 @@ interface ItunesArtist {
 
 const ROSTER = [
   'Kendrick Lamar',
-  'Manos', 
+  'Bad Bunny', 
   'Sombr',
   'Frank Ocean',
   'Juice WRLD',
@@ -72,7 +72,7 @@ const ARTIST_MOODS: Record<string, string> = {
   'Travis Scott': '#261a10',  // Cactus Jack Brown
   'Lorde': '#262410',         // Solar Power Gold
   'Sombr': '#1a0b2e',          // Deep Indigo
-  'Manos': '#102624',         // Midnight Teal (Custom)
+  'Bad Bunny': '#381c12',     // Un Verano Sin Ti Orange-Red
   'Juice WRLD': '#0d041a',     // 999 Purple
   'XXXTENTACION': '#050505',   // Bad Vibes Black
   'Lil Peep': '#1c0a13',       // Hellboy Pink-Black
@@ -467,8 +467,8 @@ export default function ArtistsClient({ initialArtists }: { initialArtists: Arti
               fontSize: '18vw', // Massive relative size
               lineHeight: 0.8,
               fontWeight: 900,
-              color: 'transparent',
-              WebkitTextStroke: '0.1px rgba(255,255,255,0.15)', // Super thin stroke
+              color: 'rgba(255,255,255,0.05)', // Increased fill visibility
+              WebkitTextStroke: '2px rgba(255,255,255,0.4)', // Thicker, brighter stroke
               textTransform: 'uppercase',
               whiteSpace: 'nowrap',
               textAlign: 'center',
