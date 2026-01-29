@@ -302,7 +302,9 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
           
           // Fallback to iTunes Preview URL
           if (song.previewUrl && audioFallbackRef.current) {
-              audioFallbackRef.current.src = song.previewUrl;
+              // Ensure HTTPS for mixed content on Netlify
+              const secureUrl = song.previewUrl.replace(/^http:\/\//i, 'https://');
+              audioFallbackRef.current.src = secureUrl;
               try {
                   await audioFallbackRef.current.play();
                   setIsPlaying(true);
@@ -822,18 +824,19 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
       </section>
 
       {/* HIDDEN YOUTUBE PLAYER & AUDIO FALLBACK */}
-      <div style={{ display: 'none' }}>
+      <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', visibility: 'hidden' }}>
         <audio ref={audioFallbackRef} />
         {/* Always render player to ensure ref is ready for client-side search */}
         <YouTube 
             opts={{ 
-                height: '0', 
-                width: '0', 
+                height: '1', 
+                width: '1', 
                 playerVars: { 
                     autoplay: 1, 
                     playsinline: 1,
                     controls: 0,
-                    disablekb: 1
+                    disablekb: 1,
+                    origin: typeof window !== 'undefined' ? window.location.origin : undefined
                 } 
             }}
             onReady={onPlayerReady}
