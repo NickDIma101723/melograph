@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { decrypt } from '@/lib/auth';
 
 // 1. Specify protected and public routes
-const protectedRoutes = ['/dashboard', '/profile', '/top20'];
+const protectedRoutes = ['/dashboard', '/profile'];
 const publicRoutes = ['/auth', '/', '/auth/reset-password'];
 
 export default async function middleware(req: NextRequest) {
