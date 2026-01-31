@@ -3,7 +3,10 @@ import { Resend } from 'resend';
 import { randomBytes, createHash } from 'crypto';
 import sql from '@/lib/db';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+if (!process.env.RESEND_API_KEY) {
+  console.warn('Warning: RESEND_API_KEY is not defined. Email operations will fail.');
+}
+const resend = new Resend(process.env.RESEND_API_KEY || 're_123');
 
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
