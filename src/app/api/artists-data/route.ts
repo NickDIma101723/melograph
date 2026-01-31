@@ -193,7 +193,7 @@ export async function GET() {
       const TIME_LIMIT = 8000;
       const startTime = Date.now();
       
-      const CONCURRENCY = 3; // Slight increase since we have a global timeout now
+      const CONCURRENCY = 2; // Reduced concurrency to prevent OOM/Timeout on weak lambdas
       const queue = [...ROSTER].map((name, index) => ({ name, index }));
       const results = new Array(ROSTER.length).fill(null);
 

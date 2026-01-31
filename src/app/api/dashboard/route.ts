@@ -18,21 +18,21 @@ export const revalidate = 0; // Disable Next.js cache, we control it manually wi
 export async function GET() {
     try {
         // 0. Ensure Table Exists (For demo purposes - usually done in migration)
-        await sql.query(`
+        await sql`
             CREATE TABLE IF NOT EXISTS api_cache (
                 key TEXT PRIMARY KEY,
                 data JSONB NOT NULL,
                 updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             )
-        `);
+        `;
 
         // 1. Check Cache (Neon Postgres)
         // We cache for 1 hour (3600 seconds)
-        const { rows } = await sql.query(`
+        const rows = await sql`
             SELECT data FROM api_cache 
-            WHERE key = $1 
+            WHERE key = ${'dashboard_main'} 
             AND updated_at > NOW() - INTERVAL '1 hour'
-        `, ['dashboard_main']);
+        `;
 
         if (rows.length > 0) {
             console.log('[Dashboard] Serving from Neon Cache');
@@ -75,12 +75,13 @@ export async function GET() {
 
         // 4. Update Cache (Neon Postgres)
         // UPSERT strategy: Insert or Update if exists
-        await sql.query(`
+        const jsonData = JSON.stringify(dashboardData);
+        await sql`
             INSERT INTO api_cache (key, data, updated_at)
-            VALUES ($1, $2, NOW())
+            VALUES (${'dashboard_main'}, ${jsonData}, NOW())
             ON CONFLICT (key) 
-            DO UPDATE SET data = $2, updated_at = NOW()
-        `, ['dashboard_main', JSON.stringify(dashboardData)]);
+            DO UPDATE SET data = ${jsonData}, updated_at = NOW()
+        `;
 
         return NextResponse.json(dashboardData);
 

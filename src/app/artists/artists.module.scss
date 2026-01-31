@@ -195,19 +195,6 @@
     width: 900px;
     height: 900px;
   }
-  
-  .heroSection {
-    left: 40%;
-  }
-
-  .sideSection {
-    right: 9.5%;
-    bottom: -38%;
-  }
-
-  .sidebar {
-    left: 18%;
-  }
 }
 
 // Standard desktops (1920px - 2559px)
@@ -217,17 +204,8 @@
     height: 32vw;
   }
   
-  .heroSection {
-     left: 40%;
-  }
-
-  .sideSection {
-    right: 9.5%;
-    bottom: -38%;
-  }
-  
   .sidebar {
-      left: 15%; /* Proportional positioning */
+      left: 20%; /* Proportional positioning */
   }
 }
 

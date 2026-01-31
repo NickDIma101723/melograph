@@ -7,6 +7,7 @@ import Lenis from 'lenis';
 import gsap from 'gsap';
 import { getCache, setCache } from '@/lib/client-cache';
 import styles from './top20.module.scss';
+import { useUI } from '@/context/UIContext';
 // iTunes RSS Interfaces
 interface RSSImage {
   label: string;
@@ -38,12 +39,15 @@ interface TopSong {
 }
 
 export default function Top20Page() {
+  const { showToast } = useUI();
   const [songs, setSongs] = useState<TopSong[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
+  const [likedTrackIds, setLikedTrackIds] = useState<Set<string>>(new Set());
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const listRef = useRef<HTMLElement>(null);
@@ -51,7 +55,54 @@ export default function Top20Page() {
 
   useEffect(() => {
     setIsMounted(true);
+    
+    // Check Auth
+    fetch('/api/auth/me').then(res => {
+         if (res.ok) return res.json();
+         return { user: null };
+    }).then(data => setIsAuthenticated(!!data.user));
+
+    // Fetch likes
+    fetch('/api/likes')
+        .then(res => res.ok ? res.json() : [])
+        .then((likes: any[]) => {
+            const titles = new Set(likes.map(l => l.song_title));
+            setLikedTrackIds(titles);
+        });
   }, []);
+
+  const toggleLike = async (e: React.MouseEvent, song: TopSong) => {
+    e.stopPropagation();
+
+    if (!isAuthenticated) {
+        if (confirm('You must be logged in to add songs to favorites. Go to login?')) {
+            window.location.href = '/auth';
+        }
+        return;
+    }
+
+    const isLiked = likedTrackIds.has(song.title);
+    const newSet = new Set(likedTrackIds);
+    if (isLiked) newSet.delete(song.title);
+    else newSet.add(song.title);
+    setLikedTrackIds(newSet);
+
+    try {
+        await fetch('/api/likes', {
+            method: 'POST',
+            body: JSON.stringify({
+                artist_name: song.artist,
+                song_title: song.title,
+                cover_url: song.image
+            }),
+            headers: { 'Content-Type': 'application/json' }
+        });
+        showToast(isLiked ? 'Removed from favorites' : 'Added to favorites', isLiked ? 'info' : 'success');
+    } catch (err) {
+        console.error('Failed to toggle like');
+        showToast('Failed to update favorites', 'error');
+    }
+  };
 
   // Drag to Scroll Logic
   const [isDragging, setIsDragging] = useState(false);
@@ -290,7 +341,31 @@ export default function Top20Page() {
                         <span className={styles.artistName}>{song.artist}</span>
                     </div>
 
-                    <div className={styles.btnLike}>♡</div>
+                    <motion.button 
+                        className={styles.btnLike}
+                        onClick={(e) => toggleLike(e, song)}
+                        initial={false}
+                        animate={{ 
+                            scale: likedTrackIds.has(song.title) ? 1 : 1,
+                            color: likedTrackIds.has(song.title) ? '#ef4444' : '#ffffff'
+                        }}
+                        whileHover={{ scale: 1.2 }}
+                        whileTap={{ scale: 0.8 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                    >
+                        <svg 
+                            width="20" 
+                            height="20" 
+                            viewBox="0 0 24 24" 
+                            fill={likedTrackIds.has(song.title) ? "currentColor" : "none"} 
+                            stroke="currentColor" 
+                            strokeWidth="2"
+                            strokeLinecap="round" 
+                            strokeLinejoin="round"
+                        >
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                        </svg>
+                    </motion.button>
 
                     {/* VISUALIZER IF PLAYING THIS SONG */}
                     {selectedIndex === idx && isPlaying && (

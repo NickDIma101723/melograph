@@ -8,12 +8,10 @@ export const maxDuration = 300;
 
 export async function GET() {
   try {
-     const client = await sql.connect();
      
-     try {
        // 1. Schema
        console.log('Creating table...');
-       await client.query(`
+       await sql`
          CREATE TABLE IF NOT EXISTS artists (
            id TEXT PRIMARY KEY,
            name TEXT UNIQUE NOT NULL,
@@ -26,7 +24,7 @@ export async function GET() {
            youtube_id TEXT,
            updated_at TIMESTAMP DEFAULT NOW()
          );
-       `);
+       `;
 
        // 2. Fetch & Insert
        const results = [];
@@ -36,9 +34,9 @@ export async function GET() {
            const data = await fetchArtistData(name);
            
            if (data) {
-               await client.query(`
+               await sql`
                   INSERT INTO artists (id, name, genre, style, image_url, bio, preview_url, is_video, youtube_id)
-                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                  VALUES (${data.idArtist}, ${data.strArtist}, ${data.strGenre}, ${data.strStyle}, ${data.strArtistThumb}, ${data.strBiographyEN}, ${data.previewUrl}, ${data.isVideo}, ${data.youtubeId})
                   ON CONFLICT (name) DO UPDATE SET
                     genre = EXCLUDED.genre,
                     style = EXCLUDED.style,
@@ -47,26 +45,13 @@ export async function GET() {
                     is_video = EXCLUDED.is_video,
                     youtube_id = EXCLUDED.youtube_id,
                     updated_at = NOW();
-               `, [
-                   data.idArtist,
-                   data.strArtist,
-                   data.strGenre,
-                   data.strStyle,
-                   data.strArtistThumb,
-                   data.strBiographyEN,
-                   data.previewUrl,
-                   data.isVideo,
-                   data.youtubeId
-               ]);
+               `;
                results.push(name);
            }
        }
        
        return NextResponse.json({ success: true, seeded: results });
 
-     } finally {
-       client.release();
-     }
   } catch (e: any) {
      return NextResponse.json({ error: e.message }, { status: 500 });
   }
