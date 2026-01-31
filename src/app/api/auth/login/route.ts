@@ -5,6 +5,14 @@ import { createSession } from '@/lib/auth';
 
 export async function POST(request: Request) {
   try {
+    // Check for database configuration issues
+    if (!process.env.DATABASE_URL || process.env.DATABASE_URL.includes('placeholder')) {
+       console.error("Critical: DATABASE_URL is missing or is the placeholder.");
+       return NextResponse.json({ 
+         error: 'Environment Configuration Error: DATABASE_URL is missing on Netlify. Please add it in Site Settings > Environment Variables.' 
+       }, { status: 500 });
+    }
+
     const { email, password } = await request.json();
 
     if (!email || !password) {
