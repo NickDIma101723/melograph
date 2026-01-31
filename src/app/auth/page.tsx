@@ -2,21 +2,73 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import styles from './auth.module.scss';
 export default function AuthPage() {
+  const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
 
   // Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [isArtist, setIsArtist] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Placeholder for authentication logic
-    console.log(isLogin ? 'Logging in...' : 'Signing up...', { email, password, name });
-    alert(isLogin ? "Simulated Login Success" : "Simulated Signup Success");
+    setLoading(true);
+    setError('');
+    setSuccessMsg('');
+
+    try {
+        if (isForgotPassword) {
+             const res = await fetch('/api/auth/forgot-password', {
+                method: 'POST',
+                body: JSON.stringify({ email }),
+                headers: { 'Content-Type': 'application/json' }
+             });
+             const data = await res.json();
+             if (!res.ok) throw new Error(data.error || 'Failed to send reset email');
+             
+             if (data.devUrl) {
+                 // Dev mode: show the link directly
+                 setSuccessMsg(`Reset link generated! Open this URL: ${data.devUrl}`);
+             } else {
+                 setSuccessMsg('If an account exists with that email, a reset link has been sent.');
+             }
+             
+             setLoading(false);
+             return;
+        }
+
+        const endpoint = isLogin ? '/api/auth/login' : '/api/auth/signup';
+        const payload = isLogin 
+            ? { email, password }
+            : { email, password, username: name, isArtist };
+
+        const res = await fetch(endpoint, {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || 'Authentication failed');
+
+        // Redirect or Success
+        router.push('/profile');
+
+    } catch (err: any) {
+        setError(err.message);
+    } finally {
+        setLoading(false);
+    }
   };
 
   return (
@@ -35,13 +87,24 @@ export default function AuthPage() {
         <div className={styles.authHeader}>
           <h1 className={styles.logo}>Melograph</h1>
           <div className={styles.subtitle}>
-            {isLogin ? '// ACCESS_TERMINAL' : '// NEW_USER_REGISTRATION'}
+            {isForgotPassword ? '// PASSWORD_RECOVERY' : (isLogin ? '// ACCESS_TERMINAL' : '// NEW_USER_REGISTRATION')}
           </div>
         </div>
 
         <form onSubmit={handleSubmit}>
+          {error && (
+              <div style={{ color: '#ff4444', fontSize: '0.8rem', marginBottom: '1rem', fontFamily: 'var(--font-geist-mono)' }}>
+                  ERROR: {error}
+              </div>
+          )}
+          {successMsg && (
+              <div style={{ color: '#44ff44', fontSize: '0.8rem', marginBottom: '1rem', fontFamily: 'var(--font-geist-mono)' }}>
+                  SUCCESS: {successMsg}
+              </div>
+          )}
+          
           <AnimatePresence>
-            {!isLogin && (
+            {!isLogin && !isForgotPassword && (
               <motion.div
                 key="name-field"
                 initial={{ opacity: 0, height: 0, marginBottom: 0 }}
@@ -74,6 +137,7 @@ export default function AuthPage() {
             />
           </div>
 
+          {!isForgotPassword && (
           <div className={styles.formGroup}>
             <input 
               type="password" 
@@ -84,8 +148,24 @@ export default function AuthPage() {
               required
             />
           </div>
+          )}
 
-          {!isLogin && (
+          {!isLogin && !isForgotPassword && (
+             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', opacity: 0.8 }}>
+                <input 
+                    type="checkbox" 
+                    id="artistCheck" 
+                    style={{ accentColor: '#fff', cursor: 'pointer' }}
+                    checked={isArtist}
+                    onChange={(e) => setIsArtist(e.target.checked)} 
+                />
+                <label htmlFor="artistCheck" style={{ fontFamily: 'var(--font-geist-mono)', fontSize: '0.8rem', cursor: 'pointer' }}>
+                    REGISTER AS ARTIST
+                </label>
+             </div>
+          )}
+
+          {!isLogin && !isForgotPassword && (
              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.5rem', opacity: 0.8 }}>
                 <input type="checkbox" id="artistCheck" style={{ accentColor: '#fff', cursor: 'pointer' }} />
                 <label htmlFor="artistCheck" style={{ fontFamily: 'var(--font-geist-mono)', fontSize: '0.8rem', cursor: 'pointer' }}>
@@ -94,31 +174,49 @@ export default function AuthPage() {
              </div>
           )}
 
+          {isLogin && !isForgotPassword && (
+              <div style={{ textAlign: 'right', marginBottom: '1rem' }}>
+                  <button 
+                    type="button"
+                    onClick={() => { setIsForgotPassword(true); setError(''); setSuccessMsg(''); }}
+                    style={{ background: 'none', border: 'none', color: '#fff', opacity: 0.5, cursor: 'pointer', fontFamily: 'var(--font-geist-mono)', fontSize: '0.7rem' }}
+                  >
+                      FORGOT_PASSWORD?
+                  </button>
+              </div>
+          )}
+
           <motion.button 
             type="submit" 
             className={styles.submitBtn}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            disabled={loading}
           >
-            {isLogin ? 'LOG IN' : 'SIGN UP'}
+            {loading ? 'PROCESSING...' : (isForgotPassword ? 'SEND_RESET_LINK' : (isLogin ? 'AUTHENTICATE' : 'INITIALIZE_USER'))}
           </motion.button>
         </form>
 
-        <div className={styles.toggleContainer}>
-          <span>{isLogin ? "DON'T HAVE AN ACCESS KEY?" : "ALREADY REGISTERED?"}</span>
-          <button 
-            className={styles.toggleBtn}
-            onClick={() => setIsLogin(!isLogin)}
-          >
-            {isLogin ? 'CREATE_ACCOUNT' : 'LOG_IN'}
-          </button>
-        </div>
 
-        {/* Temporary Dev Link */}
-        <div style={{ textAlign: 'center', marginTop: '1rem', opacity: 0.3 }}>
-             <Link href="/profile" style={{ fontSize: '0.7rem', fontFamily: 'var(--font-geist-mono)' }}>
-                 [DEV] VIEW_PROFILE_TEMPLATE
-             </Link>
+        <div className={styles.toggleContainer}>
+          {isForgotPassword ? (
+              <button 
+                className={styles.toggleBtn}
+                onClick={() => { setIsForgotPassword(false); setIsLogin(true); setError(''); setSuccessMsg(''); }}
+              >
+                BACK_TO_LOGIN
+              </button>
+          ) : (
+            <>
+              <span>{isLogin ? "DON'T HAVE AN ACCESS KEY?" : "ALREADY REGISTERED?"}</span>
+              <button 
+                className={styles.toggleBtn}
+                onClick={() => setIsLogin(!isLogin)}
+              >
+                {isLogin ? 'CREATE_ACCOUNT' : 'LOG_IN'}
+              </button>
+            </>
+          )}
         </div>
       </motion.div>
     </div>

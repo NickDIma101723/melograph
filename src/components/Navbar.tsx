@@ -14,13 +14,29 @@ const Navbar = () => {
   const pathname = usePathname();
   const [hoveredImage, setHoveredImage] = useState<string | null>(null);
   const [menuItems, setMenuItems] = useState<Array<{ id: string; label: string; href: string; image: string }>>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   // Check if we are on an artist detail page (e.g. /artists/name) but not the main artists list (/artists)
   const isArtistDetail = pathname?.startsWith('/artists/') && pathname.split('/').filter(Boolean).length > 1;
 
   useEffect(() => {
+    const checkAuth = async () => {
+        try {
+            const res = await fetch('/api/auth/me', { cache: 'no-store' }); // Ensure fresh check
+            if (res.ok) {
+                const data = await res.json();
+                if (data.user) setIsAuthenticated(true);
+                else setIsAuthenticated(false);
+            }
+        } catch (e) {
+            console.error('Auth check failed', e);
+            setIsAuthenticated(false);
+        }
+    };
+    checkAuth();
+
     const fetchMenuItems = async () => {
-      const CACHE_KEY = 'menu-images-v1';
+      const CACHE_KEY = 'menu-images-v2';
       const cached = getCache<Array<{ id: string; label: string; href: string; image: string }>>(CACHE_KEY);
       
       if (cached) {
@@ -43,18 +59,31 @@ const Navbar = () => {
     fetchMenuItems();
   }, []);
 
+  const displayedItems = menuItems.map(item => {
+    if (item.label === 'LOGIN' && isAuthenticated) {
+        // Change LOGIN to LOGOUT
+        // Note: We might want a dedicated handler rather than just a link wrapper, 
+        // but for now let's point to profile which allows logout, or handle logout.
+        // Actually, request was "login should turn into alog out button"
+        return { ...item, id: 'VII', label: 'LOGOUT', href: '/profile' }; // Using profile or we can add logout handler
+    }
+    return item;
+  }).filter(item => {
+     return true;
+  });
+
   useEffect(() => {
-    if (isMenuOpen && menuItems.length > 0) {
+    if (isMenuOpen && displayedItems.length > 0) {
       document.body.style.overflow = 'hidden';
       // Only update if different to avoid loop
-      setHoveredImage(prev => prev !== menuItems[0].image ? menuItems[0].image : prev);
+      setHoveredImage(prev => prev !== displayedItems[0].image ? displayedItems[0].image : prev);
     } else {
       // Only restore default scrolling if NOT on the home page (Hero handles Home)
       if (pathname !== '/') {
         document.body.style.overflow = 'unset';
       }
     }
-  }, [isMenuOpen, menuItems, pathname]);
+  }, [isMenuOpen, displayedItems, pathname]);
 
   return (
     <LazyMotion features={domAnimation}>
@@ -142,7 +171,7 @@ const Navbar = () => {
                 </div>
                 
                 <nav className="nav-list">
-                  {menuItems.map((item, i) => (
+                  {displayedItems.map((item, i) => (
                     <motion.div
                       key={item.id}
                       initial={{ x: -20, opacity: 0 }}
@@ -152,7 +181,15 @@ const Navbar = () => {
                       <Link 
                         href={item.href} 
                         className="nav-link-item"
-                        onClick={toggleMenu}
+                        onClick={(e) => {
+                            if (item.label === 'LOGOUT') {
+                                e.preventDefault();
+                                fetch('/api/auth/logout', { method: 'POST' }).then(() => {
+                                    window.location.href = '/auth';
+                                });
+                            }
+                            toggleMenu();
+                        }}
                         onMouseEnter={() => setHoveredImage(item.image)}
                       >
                         <span className="nav-id">{item.id}</span>

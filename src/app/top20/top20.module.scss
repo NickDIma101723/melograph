@@ -160,17 +160,19 @@
 .btnLike {
   margin-left: auto;
   margin-right: 1.5rem;
-  font-size: 1.5rem;
   color: rgba(255,255,255,0.2);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   align-items: center;
   justify-content: center;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
   
   &:hover {
-    color: #ef4444;
-    transform: scale(1.2);
+    color: #ef4444; 
     opacity: 1;
+    // Transform handled by Framer Motion
   }
 }
 

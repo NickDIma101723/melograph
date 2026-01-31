@@ -245,6 +245,7 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
       // Toggle Pause if clicking same active track
       if (currentTrackId === song.trackId) {
           if (isPlaying) {
+              // Pause whichever is playing
               if (isFallbackPlaying) {
                    audioFallbackRef.current?.pause();
               } else {
@@ -252,6 +253,7 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
               }
               setIsPlaying(false);
           } else {
+              // Resume whichever was active
               if (isFallbackPlaying) {
                    audioFallbackRef.current?.play();
               } else {
@@ -265,7 +267,7 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
       // Stop Previous
       setIsPlaying(false);
       setIsFallbackPlaying(false);
-      playerRef.current?.stopVideo(); // Stop any finding/playing
+      playerRef.current?.pauseVideo(); 
       if (audioFallbackRef.current) {
           audioFallbackRef.current.pause();
           audioFallbackRef.current.currentTime = 0;
@@ -275,45 +277,42 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
       setIsLoading(true);
       setCurrentTrackId(song.trackId);
       
-      // Strategy: Server-Side Search via our own API
-      // This is more reliable than the client-side iframe search
       try {
+          // Fetch YouTube ID from our API with timeout
           const query = `${song.artistName} - ${song.trackName} Official Audio`;
-          console.log(`Searching API: ${query}`);
           
-          const res = await fetch(`/api/youtube?q=${encodeURIComponent(query)}`);
-          if (!res.ok) throw new Error("API Search Failed");
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 6000); // Reduced to 6s for faster fallback
           
+          const res = await fetch(`/api/youtube/?q=${encodeURIComponent(query)}`, {
+            signal: controller.signal
+          }); 
+          clearTimeout(timeoutId);
+          
+          if (!res.ok) {
+            throw new Error(`API Error: ${res.status}`);
+          }
+
           const data = await res.json();
-          if (!data.videoId) throw new Error("No video ID returned");
-
-          console.log(`Playing [${data.source}]: ${data.videoId}`);
-
-          if (playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
-               playerRef.current.loadVideoById({
-                   videoId: data.videoId,
-                   startSeconds: 0
-               });
-               playerRef.current.setLoop(false);
-               setIsPlaying(true);
-               setIsLoading(false);
-               setVideoId(data.videoId);
+          if (data.videoId) {
+              console.log(`Playing via YouTube: ${query}`);
+              setVideoId(data.videoId);
+              setIsPlaying(true); 
+              setIsFallbackPlaying(false);
           } else {
-              throw new Error("Player not ready");
+             throw new Error("No video ID");
           }
       } catch (err) {
-          console.warn("Full song search failed, falling back to iTunes Preview:", err);
+          console.warn("YouTube API failed, falling back to iTunes Preview:", err);
           
           // Fallback to iTunes Preview URL
           if (song.previewUrl && audioFallbackRef.current) {
-              // Ensure HTTPS for mixed content on Netlify
-              const secureUrl = song.previewUrl.replace(/^http:\/\//i, 'https://');
-              audioFallbackRef.current.src = secureUrl;
+              audioFallbackRef.current.src = song.previewUrl;
               try {
                   await audioFallbackRef.current.play();
                   setIsPlaying(true);
                   setIsFallbackPlaying(true);
-                  setVideoId(null);
+                  setVideoId(null); // Clear video
               } catch (e) {
                   console.error("Fallback playback failed", e);
                   alert("Unable to play this track.");
@@ -324,6 +323,7 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
               alert("Playback unavailable for this track.");
               setCurrentTrackId(null);
           }
+      } finally {
           setIsLoading(false);
       }
   };
@@ -546,29 +546,8 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
       
       {/* Mobile Logo Independent of Nav */}
       <div className={styles.mobileLogoContainer}>
-         <svg
-            width="32"
-            height="32"
-            viewBox="0 0 32 32"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            style={{ marginRight: '8px' }}
-         >
-           <path
-             d="M2 22C4 22 7 12 9 12C11 12 14 26 14 26C14 26 19 8 22 8C25 8 29 20 30 24"
-             stroke="white"
-             strokeWidth="3"
-             strokeLinecap="round"
-             strokeLinejoin="round"
-           />
-         </svg>
-         <span style={{ 
-            fontWeight: 800, 
-            letterSpacing: '-1px', 
-            fontSize: '1.2rem', 
-            color: '#fff',
-            fontFamily: 'var(--font-geist-mono)' // Ensure consistent font
-         }}>MELOGRAPH</span>
+         <div style={{ width: '8px', height: '8px', background: '#fff' }} />
+         <span style={{ fontWeight: 800, letterSpacing: '-1px', fontSize: '1.2rem', color: '#fff' }}>MELOGRAPH</span>
       </div>
         
         {/* LEFT SIDE - IMAGE */}
@@ -828,24 +807,16 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
       </section>
 
       {/* HIDDEN YOUTUBE PLAYER & AUDIO FALLBACK */}
-      <div style={{ position: 'absolute', top: '-9999px', left: '-9999px', visibility: 'hidden' }}>
+      <div style={{ display: 'none' }}>
         <audio ref={audioFallbackRef} />
-        {/* Always render player to ensure ref is ready for client-side search */}
-        <YouTube 
-            opts={{ 
-                height: '1', 
-                width: '1', 
-                playerVars: { 
-                    autoplay: 1, 
-                    playsinline: 1,
-                    controls: 0,
-                    disablekb: 1,
-                    origin: typeof window !== 'undefined' ? window.location.origin : undefined
-                } 
-            }}
-            onReady={onPlayerReady}
-            onStateChange={onPlayerStateChange}
-        />
+        {videoId && (
+            <YouTube 
+                videoId={videoId} 
+                opts={{ height: '0', width: '0', playerVars: { autoplay: 1 } }}
+                onReady={onPlayerReady}
+                onStateChange={onPlayerStateChange}
+            />
+        )}
       </div>
 
       <style jsx global>{`

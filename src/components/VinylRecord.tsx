@@ -22,7 +22,7 @@ const VinylRecord: React.FC<VinylRecordProps> = ({ isPlaying, imageSrc }) => {
       </div>
       
       <div className={`${"tonearm"} ${isPlaying ? "playing" : ''}`}>
-        <svg viewBox="0 0 200 400" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox="0 0 200 400" width="100" height="200" style={{ width: '100%', height: '100%' }} fill="none" xmlns="http://www.w3.org/2000/svg">
           {/* Pivot Base */}
           <circle cx="146" cy="52" r="25" fill="#2a2a2a" stroke="#111" strokeWidth="2"/>
           <circle cx="146" cy="52" r="10" fill="#111"/>

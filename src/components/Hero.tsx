@@ -58,6 +58,23 @@ const FEATURED_ARTISTS = [
       subtitle: 'X'
     },
     cardColor: '#C4B2A6'
+  },
+  {
+    id: 'mac',
+    artist: 'Mac Miller',
+    song: 'Self Care',
+    album: 'Swimming',
+    year: '2018',
+    genre: 'Hip-Hop',
+    videoId: 'SsKT0s5J8ko',
+    previewUrl: 'https://video-ssl.itunes.apple.com/itunes-assets/Video125/v4/bb/9e/0d/bb9e0dfa-7886-bca2-bbf4-84c5ce3d29c4/mzvf_10689170736915463474.1920w.h264lc.U.p.m4v',
+    artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Music126/v4/ba/68/21/ba682131-04d5-efc1-c880-27c4473e3063/3798.jpg/1000x1000bb.jpg',
+    link: 'https://music.apple.com/us/album/swimming/1408996052',
+    badge: {
+      title: 'SW',
+      subtitle: 'IM'
+    },
+    cardColor: '#F2D2D2'
   }
 ];
 

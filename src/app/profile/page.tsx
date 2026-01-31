@@ -1,35 +1,126 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 import styles from './profile.module.scss';
-
-// Mock Data for Favorites
-const FAVORITES = [
-    { id: 1, title: "Midnight City", artist: "M83", cover: "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/4b/41/51/4b415162-8438-e4b7-a309-8084d5df6fa5/0724386348352.jpg/600x600bb.jpg" },
-    { id: 2, title: "Starboy", artist: "The Weeknd", cover: "https://is1-ssl.mzstatic.com/image/thumb/Music125/v4/37/10/7b/37107b9a-4f51-789a-0e98-250325f77891/16UMGIM46098.jpg/600x600bb.jpg" },
-    { id: 3, title: "Do I Wanna Know?", artist: "Arctic Monkeys", cover: "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/44/7f/0b/447f0b8d-d55a-eaf2-ffdf-542095cc1fe0/887828031795.jpg/600x600bb.jpg" },
-    { id: 4, title: "Borderline", artist: "Tame Impala", cover: "https://is1-ssl.mzstatic.com/image/thumb/Music115/v4/91/92/2e/91922eeb-aa71-464a-297e-d00be339589d/00602508738321.rgb.jpg/600x600bb.jpg" },
-];
-
-const UPLOADS = [
-    { id: 101, title: "My New Beat Demo", date: "Jan 12, 2026", form: "WAV" },
-    { id: 102, title: "Ambient Background #4", date: "Dec 30, 2025", form: "MP3" },
-];
+import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
-    // Determine if User is an Artist (simulated state, could come from context/auth)
-    // For demo purposes, we will default to true or toggle via UI
-    const [isArtist, setIsArtist] = useState(true); 
+    const router = useRouter();
+    const [user, setUser] = useState<any>(null);
+    const [likes, setLikes] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'favorites' | 'uploads'>('favorites');
+    
+    // Edit Mode State
+    const [isEditing, setIsEditing] = useState(false);
+    const [newAvatar, setNewAvatar] = useState('');
+    const [newUsername, setNewUsername] = useState('');
+    const [newEmail, setNewEmail] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        const init = async () => {
+            try {
+                // Fetch User Session
+                const meRes = await fetch('/api/auth/me');
+                
+                // Handle non-200 responses
+                if (!meRes.ok) {
+                    router.push('/auth');
+                    return;
+                }
+
+                const userData = await meRes.json();
+                
+                // Handle authenticated but empty session (user: null)
+                if (!userData.user) {
+                     router.push('/auth');
+                     return;
+                }
+
+                setUser(userData.user);
+                setNewAvatar(userData.user.avatar_url || '');
+                setNewUsername(userData.user.username || '');
+                setNewEmail(userData.user.email || '');
+
+                // Fetch Likes
+                const likesRes = await fetch('/api/likes');
+                if (likesRes.ok) {
+                    setLikes(await likesRes.json());
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        init();
+    }, [router]);
+
+    const handleLogout = async () => {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        router.push('/auth');
+    };
+
+    const handleSaveProfile = async () => {
+        setIsSaving(true);
+        try {
+            const res = await fetch('/api/user/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    avatar_url: newAvatar,
+                    username: newUsername,
+                    email: newEmail 
+                })
+            });
+            
+            if (res.ok) {
+                // Optimistic Update
+                setUser((prev: any) => ({ 
+                    ...prev, 
+                    avatar_url: newAvatar,
+                    username: newUsername,
+                    email: newEmail
+                }));
+                setIsEditing(false);
+            } else {
+                alert('Failed to update profile');
+            }
+        } catch (err) {
+            alert('Failed to update profile');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setNewAvatar(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className={styles.page} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ color: '#fff', fontFamily: 'var(--font-geist-mono)' }}>INITIALIZING...</div>
+            </div>
+        );
+    }
+
+    if (!user) return null;
 
     return (
         <div className={styles.page}>
             <div className={styles.noiseOverlay} />
             <div className={styles.gridLines} />
-
-            {/* NEW LAYOUT STRUCTURE */}
-
 
             <div className={styles.profileWrapper}>
                 
@@ -38,9 +129,13 @@ export default function ProfilePage() {
                     {/* LEFT: AVATAR / IMAGE */}
                     <div className={styles.avatarWrapper}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Niko" alt="User Avatar" />
+                        <img 
+                            src={user.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${user.username}`} 
+                            alt="User Avatar" 
+                            style={{ objectFit: 'cover' }}
+                        />
                         <div className={styles.statusIndicator}>
-                            {isArtist ? 'Verified Artist' : 'Active User'}
+                            <span>{user.is_artist ? 'Verified Artist' : 'Active User'}</span>
                         </div>
                     </div>
 
@@ -48,51 +143,118 @@ export default function ProfilePage() {
                     <div className={styles.infoBlock}>
                         <div className={styles.topBar}>
                             <div className={styles.metaLabel}>
-                                {isArtist ? 'Artist Profile' : 'Listener Profile'}
+                                {user.is_artist ? 'Melograph Artist' : 'Melograph Listener'}
                             </div>
                             <div className={styles.actionRow}>
-                                <button className="btnDev" onClick={() => setIsArtist(!isArtist)}>
-                                    [DEV] Role
-                                </button>
-                                <button>Edit Profile</button>
+                                <button onClick={() => router.push('/dashboard')} style={{ opacity: 0.8 }}>Dashboard</button>
+                                <button onClick={handleLogout} style={{ opacity: 0.6 }}>Log Out</button>
+                                {isEditing ? (
+                                    <>
+                                        <button onClick={() => setIsEditing(false)}>Cancel</button>
+                                        <button onClick={handleSaveProfile} disabled={isSaving}>
+                                            {isSaving ? 'Saving...' : 'Save'}
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button onClick={() => setIsEditing(true)}>Edit Profile</button>
+                                )}
                             </div>
                         </div>
 
                         <h1 className={styles.bigName}>
-                            NIKO_DEV
+                            {user.username}
                         </h1>
+
+                        {isEditing && (
+                            <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(255,255,255,0.02)', padding: '1rem', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                        <label style={{ fontSize: '0.7rem', opacity: 0.7, fontFamily: 'var(--font-geist-mono)' }}>USERNAME</label>
+                                        <input 
+                                            type="text" 
+                                            value={newUsername}
+                                            onChange={(e) => setNewUsername(e.target.value)}
+                                            style={{ 
+                                                background: 'rgba(0,0,0,0.3)', 
+                                                border: '1px solid rgba(255,255,255,0.1)',
+                                                padding: '0.5rem',
+                                                color: '#fff',
+                                                outline: 'none',
+                                                fontFamily: 'var(--font-geist-sans)'
+                                            }}
+                                        />
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                        <label style={{ fontSize: '0.7rem', opacity: 0.7, fontFamily: 'var(--font-geist-mono)' }}>EMAIL</label>
+                                        <input 
+                                            type="email" 
+                                            value={newEmail}
+                                            onChange={(e) => setNewEmail(e.target.value)}
+                                            style={{ 
+                                                background: 'rgba(0,0,0,0.3)', 
+                                                border: '1px solid rgba(255,255,255,0.1)',
+                                                padding: '0.5rem',
+                                                color: '#fff',
+                                                outline: 'none',
+                                                fontFamily: 'var(--font-geist-sans)'
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                                    <label style={{ fontSize: '0.7rem', opacity: 0.7, fontFamily: 'var(--font-geist-mono)' }}>AVATAR IMAGE</label>
+                                    <input 
+                                        type="file" 
+                                        accept="image/*"
+                                        onChange={handleFileChange}
+                                        style={{ fontFamily: 'var(--font-geist-mono)', fontSize: '0.8rem' }}
+                                    />
+                                    <div style={{ fontSize: '0.7rem', opacity: 0.4, marginTop: '2px' }}>
+                                        OR ENTER URL BELOW
+                                    </div>
+                                    <input 
+                                        type="text" 
+                                        value={newAvatar}
+                                        onChange={(e) => setNewAvatar(e.target.value)}
+                                        placeholder="https://..."
+                                        style={{ 
+                                            background: 'rgba(0,0,0,0.3)', 
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            padding: '0.5rem',
+                                            color: '#fff',
+                                            outline: 'none',
+                                            fontFamily: 'var(--font-geist-mono)',
+                                            fontSize: '0.8rem'
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                         <div className={styles.statsGrid}>
                             <div className={styles.statUnit}>
-                                <span className={styles.statLabel}>Total Plays</span>
-                                <span className={styles.statValue}>142,392</span>
+                                <span className={styles.statLabel}>Favorites</span>
+                                <span className={styles.statValue}>{likes.length}</span>
                             </div>
                             <div className={styles.statUnit}>
-                                <span className={styles.statLabel}>Followers</span>
-                                <span className={styles.statValue}>{isArtist ? '12.4k' : '24'}</span>
-                            </div>
-                            <div className={styles.statUnit}>
-                                <span className={styles.statLabel}>Region</span>
-                                <span className={styles.statValue}>Tokyo, JP</span>
-                            </div>
-                            <div className={styles.statUnit}>
-                                <span className={styles.statLabel}>Joined</span>
-                                <span className={styles.statValue}>2024</span>
+                                <span className={styles.statLabel}>Email</span>
+                                <span className={styles.statValue}>{user.email}</span>
                             </div>
                         </div>
                     </div>
                 </header>
 
-                {/* TEXT NAVIGATION (LIKE ARTIST DETAILS) */}
+                {/* TEXT NAVIGATION */}
                 <div className={styles.navContainer}>
                     <nav className={styles.glassNav}>
                         <button 
                             className={`${styles.navLink} ${activeTab === 'favorites' ? styles.active : ''}`}
                             onClick={() => setActiveTab('favorites')}
                         >
-                            LIBRARY
+                            LIKED SONGS
                         </button>
-                        {isArtist && (
+                        {user.is_artist && (
                             <button 
                                 className={`${styles.navLink} ${activeTab === 'uploads' ? styles.active : ''}`}
                                 onClick={() => setActiveTab('uploads')}
@@ -115,7 +277,11 @@ export default function ProfilePage() {
                                 exit={{ opacity: 0, y: -30 }}
                                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                             >
-                                {FAVORITES.map((song, i) => (
+                                {likes.length === 0 && (
+                                    <div style={{ opacity: 0.5, padding: '2rem' }}>No liked songs yet. Go explore!</div>
+                                )}
+
+                                {likes.map((song, i) => (
                                     <div key={song.id} className={styles.listRow} style={{ transitionDelay: `${i * 50}ms` }}>
                                         {/* Rank */}
                                         <div className={styles.rankNum}>
@@ -125,28 +291,23 @@ export default function ProfilePage() {
                                         {/* Image */}
                                         <div className={styles.rowImage}>
                                             {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img src={song.cover} alt={song.title} />
+                                            <img src={song.cover_url || '/placeholder.png'} alt={song.song_title} />
                                         </div>
 
                                         {/* Info */}
                                         <div className={styles.rowInfo}>
-                                            <h3>{song.title}</h3>
-                                            <p>{song.artist}</p>
-                                        </div>
-
-                                        {/* Duration (Mock) */}
-                                        <div className={styles.rowDuration}>
-                                            3:42
+                                            <h3>{song.song_title}</h3>
+                                            <p>{song.artist_name}</p>
                                         </div>
 
                                         {/* Action */}
-                                        <button className={styles.btnPlay}>▶</button>
+                                        <button className={styles.btnPlay}>♥</button>
                                     </div>
                                 ))}
                                 
-                                <div className={styles.exploreRow}>
+                                <Link href="/artists" className={styles.exploreRow} style={{ display: 'block', textDecoration: 'none' }}>
                                     + Explore More Music
-                                </div>
+                                </Link>
                             </motion.div>
                         ) : (
                             <motion.div 
@@ -158,21 +319,12 @@ export default function ProfilePage() {
                                 transition={{ duration: 0.4 }}
                             >
                                 <div className={styles.panelHeader}>
-                                    <h2>Manage Releases</h2>
+                                    <h2>Your Releases</h2>
                                     <button className={styles.actionBtn}>NEW UPLOAD +</button>
                                 </div>
                                 
                                 <div className={styles.trackList}>
-                                    {UPLOADS.map((upload, i) => (
-                                        <div key={upload.id} className={styles.trackRow}>
-                                            <span className={styles.rowTitle}>{upload.title}</span>
-                                            <span style={{opacity: 0.5}}>{upload.form}</span>
-                                            <span style={{opacity: 0.5}}>{upload.date}</span>
-                                            <div style={{textAlign: 'right'}}>
-                                                <span className={styles.statusTag}>LIVE</span>
-                                            </div>
-                                        </div>
-                                    ))}
+                                   <div style={{opacity: 0.5, padding: '1rem' }}>No uploads yet.</div>
                                 </div>
                             </motion.div>
                         )}
