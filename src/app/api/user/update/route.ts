@@ -40,6 +40,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ user: sessionUser });
 
     } catch(e) {
-        return NextResponse.json({ error: 'Update failed' }, { status: 500 });
+        console.error('PROFILE UPDATE ERROR:', e);
+        return NextResponse.json({ error: 'Update failed', details: String(e) }, { status: 500 });
     }
 }

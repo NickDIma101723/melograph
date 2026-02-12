@@ -76,10 +76,14 @@ export default function ProfilePage() {
     if (loading) {
         return (
             <div className={styles.loadingScreen}>
-                <div className={styles.loadingText}>
-                    <span>LOADING</span>
-                    <span className={styles.loadingDot}>_</span>
+                <div className={styles.loadingWave}>
+                    <div className={styles.bar} />
+                    <div className={styles.bar} />
+                    <div className={styles.bar} />
+                    <div className={styles.bar} />
+                    <div className={styles.bar} />
                 </div>
+                <div className={styles.loadingText}>INITIALIZING</div>
             </div>
         );
     }
