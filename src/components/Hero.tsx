@@ -834,7 +834,8 @@ export default function Hero() {
                     className="video-modal__project-info"
                     style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    <span>STREAM NOW</span>
+                    <span className="desktop-text">STREAM NOW</span>
+                    <span className="mobile-text">STREAM</span>
                   </a>
                 </div>
               </div>

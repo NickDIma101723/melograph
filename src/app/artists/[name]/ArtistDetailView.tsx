@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
 import { motion, useScroll, useTransform, useSpring, useMotionValue, AnimatePresence } from 'framer-motion';
@@ -200,6 +201,100 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
   const { scrollYProgress } = useScroll();
   const y = useTransform(scrollYProgress, [0, 1], ['0%', '50%']);
   const [viewMode, setViewMode] = useState<'scroll' | 'grid'>('scroll');
+  const [selectedAlbum, setSelectedAlbum] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (selectedAlbum) {
+      // 1. CSS Lock
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.paddingRight = 'var(--removed-body-scroll-bar-size)'; // Optional: prevent shift
+      
+      // 2. Event Lock (The Nuclear Option) to stop Lenis/Browsers
+      const preventDefault = (e: Event) => {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+      };
+
+      // Passive: false is critical to allows preventDefault
+      const opts = { passive: false }; 
+      
+      window.addEventListener('wheel', preventDefault, opts);
+      window.addEventListener('touchmove', preventDefault, opts);
+      window.addEventListener('keydown', (e: KeyboardEvent) => {
+          if (["ArrowUp", "ArrowDown", "Space", "PageUp", "PageDown", "Home", "End"].includes(e.code)) {
+              preventDefault(e);
+          }
+      }, opts);
+
+      return () => {
+         // Cleanup
+         document.body.style.overflow = '';
+         document.documentElement.style.overflow = '';
+         document.body.style.paddingRight = '';
+
+         window.removeEventListener('wheel', preventDefault); // remove accepts without opts/capture mismatch usually
+         window.removeEventListener('touchmove', preventDefault);
+         // Note: Anonymous keydown listener above can't be removed easily without ref refs.
+         // Let's rewrite this part nicely below.
+      };
+    }
+  }, [selectedAlbum]);
+
+  // Refined Event Locking Effect
+  useEffect(() => {
+     if (!selectedAlbum) return;
+
+     // We previously locked scroll here, but now we're relying on CSS overflow
+     // and standard behavior to allow scrolling inside the modal if needed.
+     
+ 
+     const preventScroll = (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+     };
+
+     const preventKeys = (e: KeyboardEvent) => {
+        if (['ArrowUp', 'ArrowDown', ' ', 'PageUp', 'PageDown', 'Home', 'End'].includes(e.key)) {
+            e.preventDefault();
+        }
+     };
+
+     // Lock
+     window.addEventListener('wheel', preventScroll, { passive: false });
+     window.addEventListener('touchmove', preventScroll, { passive: false });
+     window.addEventListener('keydown', preventKeys);
+
+     return () => {
+         // Unlock
+         window.removeEventListener('wheel', preventScroll);
+         window.removeEventListener('touchmove', preventScroll);
+         window.removeEventListener('keydown', preventKeys);
+     };
+    
+  }, [selectedAlbum]);
+
+  // Modal 3D Tilt Logic
+  const modalX = useMotionValue(0);
+  const modalY = useMotionValue(0);
+  const modalRotateX = useTransform(modalY, [-0.5, 0.5], [7, -7]);
+  const modalRotateY = useTransform(modalX, [-0.5, 0.5], [-7, 7]);
+
+  const handleModalMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const width = rect.width;
+      const height = rect.height;
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      modalX.set((mouseX / width) - 0.5);
+      modalY.set((mouseY / height) - 0.5);
+  };
+
+  const handleModalMouseLeave = () => {
+      modalX.set(0); 
+      modalY.set(0);
+  };
   
   // Full Song Playback State (YouTube)
   const [currentTrackId, setCurrentTrackId] = useState<number | null>(null);
@@ -207,6 +302,8 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [currentSong, setCurrentSong] = useState<any>(null);
+  const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
 
   // YouTube and Audio Fallback Refs
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -216,16 +313,17 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
 
   useEffect(() => {
       let interval: NodeJS.Timeout;
-      if (isPlaying && playerRef.current) {
+      if (isPlaying) {
           interval = setInterval(() => {
-              // YouTube Progress
-              if (typeof playerRef.current.getCurrentTime === 'function') {
+              if (isFallbackPlaying && audioFallbackRef.current) {
+                  setCurrentTime(audioFallbackRef.current.currentTime);
+              } else if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
                   setCurrentTime(playerRef.current.getCurrentTime());
               }
-          }, 1000);
+          }, 500);
       }
       return () => clearInterval(interval);
-  }, [isPlaying]);
+  }, [isPlaying, isFallbackPlaying]);
 
   // Handle Audio Fallback Ends
   useEffect(() => {
@@ -276,10 +374,11 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
       // Start New Track
       setIsLoading(true);
       setCurrentTrackId(song.trackId);
+      setCurrentSong(song);
       
       try {
           // Fetch YouTube ID from our API with timeout
-          const query = `${song.artistName} - ${song.trackName} Official Audio`;
+          const query = `${song.artistName} ${song.trackName} audio`;
           
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 6000); // Reduced to 6s for faster fallback
@@ -633,7 +732,7 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
       <section className={styles.tracksSection}>
         <div className={styles.sectionHeader}>
             <h2>
-              TOP TRACKS
+              Top Tracks
             </h2>
              <div className={styles.mostPlayedBadge}>
                  <div className={styles.dot} style={{ background: themeColor, boxShadow: `0 0 10px ${themeColor}` }}></div>
@@ -724,6 +823,14 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
                                 {isActive ? (isPlaying ? 'PAUSE' : 'RESUME') : 'PLAY NOW'}
                              </span>
                              {(() => {
+                                if (isActive && isPlaying) {
+                                    const elapsedMins = Math.floor(currentTime / 60);
+                                    const elapsedSecs = Math.floor(currentTime % 60).toString().padStart(2, '0');
+                                    const totalMs = song.trackTimeMillis || 0;
+                                    const totalMins = Math.floor(totalMs / 60000);
+                                    const totalSecs = Math.floor((totalMs % 60000) / 1000).toString().padStart(2, '0');
+                                    return `${elapsedMins}:${elapsedSecs} / ${totalMins}:${totalSecs}`;
+                                }
                                 const ms = song.trackTimeMillis || 0;
                                 const mins = Math.floor(ms / 60000);
                                 const secs = Math.floor((ms % 60000) / 1000).toString().padStart(2, '0');
@@ -738,27 +845,35 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
       {/* 4. DISCOGRAPHY */}
       <section className={styles.discographySection}>
          <div className={styles.discographyHeader}>
-             <h2 className={styles.discographyTitle}>
-                DISCOGRAPHY
-             </h2>
-             <button 
-                onClick={() => setViewMode(prev => prev === 'scroll' ? 'grid' : 'scroll')}
-                className={styles.viewToggle}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#fff'; e.currentTarget.style.opacity = '1'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'; }}
+             <motion.div 
+                className={styles.discographyHeaderLeft}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
              >
-                {viewMode === 'scroll' ? (
-                   <>
-                     <span>Show Grid</span>
-                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                   </>
-                ) : (
-                   <>
-                     <span>Show Scroll</span>
-                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="10" rx="2" /></svg>
-                   </>
-                )}
-             </button>
+                <span className={styles.discographyEyebrow}>
+                   <span className={styles.discographyDot} style={{ background: themeColor }} />
+                   {uniqueAlbums.length} Releases
+                </span>
+                <h2 className={styles.discographyTitle}>
+                   Albums &<br/>Singles
+                </h2>
+             </motion.div>
+             <motion.div 
+                className={styles.discographyHeaderRight}
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+             >
+                <button 
+                   onClick={() => setViewMode(prev => prev === 'scroll' ? 'grid' : 'scroll')}
+                   className={styles.viewToggle}
+                >
+                   {viewMode === 'scroll' ? 'Grid View' : 'List View'}
+                </button>
+             </motion.div>
          </div>
          
          <motion.div 
@@ -767,6 +882,7 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
              onWheel={viewMode === 'scroll' ? onWheel : undefined}
              initial={{ opacity: 0 }}
              animate={{ opacity: 1 }}
+             transition={{ duration: 0.5 }}
              {...(viewMode === 'scroll' ? { 'data-lenis-prevent': '' } : {})}
              className={`${styles.albumsContainer} ${viewMode === 'scroll' ? styles.scrollMode : styles.gridMode}`}
          >
@@ -774,50 +890,346 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
             {uniqueAlbums.map((album: any, i: number) => (
                <motion.div 
                  key={album.collectionId}
-                 initial={{ opacity: 0, scale: 0.9 }}
-                 whileInView={{ opacity: 1, scale: 1 }}
+                 onClick={() => setSelectedAlbum(album)}
+                 initial={{ opacity: 0, y: 30 }}
+                 whileInView={{ opacity: 1, y: 0 }}
                  viewport={{ once: true, margin: "-50px" }}
-                 transition={{ duration: 0.4, delay: (i % 8) * 0.05 }}
-                 className={styles.albumCard}
+                 transition={{ duration: 0.5, delay: (i % 6) * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                 className={`${styles.albumCard} ${i === 0 && viewMode === 'grid' ? styles.albumCardFeatured : ''}`}
                  style={{ 
-                    // Override SCSS fixed width when in grid mode
                     width: viewMode === 'grid' ? '100%' : undefined,
-                    minWidth: viewMode === 'grid' ? '0' : undefined
+                    minWidth: viewMode === 'grid' ? '0' : undefined,
                  }}
                >
-                  <div className={styles.albumCoverWrapper}>
+                  <motion.div className={styles.albumCoverWrapper} layoutId={`album-img-${album.collectionId}`}>
                     <Image
                       src={album.artworkUrl100.replace('100x100bb', '600x600bb')}
                       alt={album.collectionName}
                       fill
                       priority={i < 2}
-                      sizes="(max-width: 768px) 150px, 300px"
+                      sizes="(max-width: 768px) 50vw, 300px"
                       style={{ objectFit: 'cover' }}
                     />
-                    <div className={styles.bwOverlay} />
-                    <div style={{ position: 'absolute', top: '10px', right: '10px', background: '#000', color: '#fff', padding: '0.2rem 0.5rem', fontSize: '0.7rem', fontWeight: 'bold' }}>
-                      {new Date(album.releaseDate).getFullYear()}
+                    
+                    {/* Hover overlay with info */}
+                    <div className={styles.cardOverlay}>
+                       <div className={styles.cardOverlayContent}>
+                          <div className={styles.cardPlayBtn}>
+                             <svg width="18" height="18" viewBox="0 0 24 24" fill="#fff" stroke="none">
+                                <polygon points="8 5 19 12 8 19 8 5" />
+                             </svg>
+                          </div>
+                          <span className={styles.cardOverlayText}>View Album</span>
+                       </div>
                     </div>
+                  </motion.div>
+                  
+                  <div className={styles.albumMeta}>
+                     <div className={styles.albumTitle}>{album.collectionName}</div>
+                     <div className={styles.albumSubline}>
+                        {new Date(album.releaseDate).getFullYear()} &middot; {album.trackCount} tracks
+                     </div>
                   </div>
-                  <div className={styles.albumTitle}>{album.collectionName}</div>
-                  <div className={styles.albumInfo}>{album.trackCount} Tracks</div>
                </motion.div>
             ))}
          </motion.div>
       </section>
 
-      {/* HIDDEN YOUTUBE PLAYER & AUDIO FALLBACK */}
-      <div style={{ display: 'none' }}>
-        <audio ref={audioFallbackRef} />
-        {videoId && (
-            <YouTube 
-                videoId={videoId} 
-                opts={{ height: '0', width: '0', playerVars: { autoplay: 1 } }}
-                onReady={onPlayerReady}
-                onStateChange={onPlayerStateChange}
-            />
+      {/* AUDIO FALLBACK (hidden) */}
+      <audio ref={audioFallbackRef} style={{ display: 'none' }} />
+
+      {/* NOW PLAYING BAR */}
+      <AnimatePresence>
+        {(currentTrackId || isLoading) && currentSong && (
+          <motion.div
+            key="now-playing"
+            initial={{ y: 120, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 120, opacity: 0 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className={`${styles.nowPlayingBar} ${isPlayerExpanded ? styles.nowPlayingExpanded : ''}`}
+          >
+            {/* Expanded Video View */}
+            {isPlayerExpanded && videoId && (
+              <div className={styles.npVideoContainer}>
+                <YouTube
+                  videoId={videoId}
+                  opts={{
+                    width: '100%',
+                    height: '100%',
+                    playerVars: { autoplay: 1, controls: 0, modestbranding: 1, rel: 0, showinfo: 0, playsinline: 1 }
+                  }}
+                  onReady={onPlayerReady}
+                  onStateChange={onPlayerStateChange}
+                  className={styles.npYouTube}
+                />
+              </div>
+            )}
+
+            {/* Hidden YouTube player when collapsed */}
+            {!isPlayerExpanded && videoId && (
+              <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+                <YouTube
+                  videoId={videoId}
+                  opts={{ height: '0', width: '0', playerVars: { autoplay: 1, playsinline: 1 } }}
+                  onReady={onPlayerReady}
+                  onStateChange={onPlayerStateChange}
+                />
+              </div>
+            )}
+
+            {/* Controls Bar */}
+            <div className={styles.npControls}>
+              {/* Song Info */}
+              <div className={styles.npInfo}>
+                <div className={styles.npArt}>
+                  <Image
+                    src={currentSong.artworkUrl100?.replace('100x100bb', '200x200bb') || ''}
+                    alt={currentSong.trackName || ''}
+                    fill
+                    style={{ objectFit: 'cover' }}
+                  />
+                </div>
+                <div className={styles.npMeta}>
+                  <span className={styles.npTitle}>{currentSong.trackName}</span>
+                  <span className={styles.npArtist}>{currentSong.artistName}</span>
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className={styles.npProgressArea}>
+                <span className={styles.npTime}>
+                  {Math.floor(currentTime / 60)}:{Math.floor(currentTime % 60).toString().padStart(2, '0')}
+                </span>
+                <div className={styles.npProgressBar}>
+                  <motion.div
+                    className={styles.npProgressFill}
+                    style={{
+                      width: `${currentSong.trackTimeMillis ? (currentTime / (currentSong.trackTimeMillis / 1000)) * 100 : 0}%`,
+                      background: themeColor
+                    }}
+                  />
+                </div>
+                <span className={styles.npTime}>
+                  {(() => {
+                    const ms = currentSong.trackTimeMillis || 0;
+                    return `${Math.floor(ms / 60000)}:${Math.floor((ms % 60000) / 1000).toString().padStart(2, '0')}`;
+                  })()}
+                </span>
+              </div>
+
+              {/* Action Buttons */}
+              <div className={styles.npActions}>
+                {/* Play/Pause */}
+                <button
+                  className={styles.npPlayBtn}
+                  onClick={() => {
+                    if (isLoading) return;
+                    if (isPlaying) {
+                      if (isFallbackPlaying) audioFallbackRef.current?.pause();
+                      else playerRef.current?.pauseVideo();
+                      setIsPlaying(false);
+                    } else {
+                      if (isFallbackPlaying) audioFallbackRef.current?.play();
+                      else playerRef.current?.playVideo();
+                      setIsPlaying(true);
+                    }
+                  }}
+                  style={{ color: themeColor }}
+                >
+                  {isLoading ? (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                      style={{ width: 18, height: 18, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%' }}
+                    />
+                  ) : isPlaying ? (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
+                  ) : (
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3" /></svg>
+                  )}
+                </button>
+
+                {/* Expand/Collapse Video */}
+                {videoId && !isFallbackPlaying && (
+                  <button
+                    className={styles.npExpandBtn}
+                    onClick={() => setIsPlayerExpanded(!isPlayerExpanded)}
+                  >
+                    {isPlayerExpanded ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" /><line x1="14" y1="10" x2="21" y2="3" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
+                    ) : (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
+                    )}
+                  </button>
+                )}
+
+                {/* Close */}
+                <button
+                  className={styles.npCloseBtn}
+                  onClick={() => {
+                    playerRef.current?.pauseVideo();
+                    if (audioFallbackRef.current) {
+                      audioFallbackRef.current.pause();
+                      audioFallbackRef.current.currentTime = 0;
+                    }
+                    setCurrentTrackId(null);
+                    setVideoId(null);
+                    setIsPlaying(false);
+                    setIsFallbackPlaying(false);
+                    setCurrentSong(null);
+                    setCurrentTime(0);
+                    setIsPlayerExpanded(false);
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                </button>
+              </div>
+            </div>
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
+
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {selectedAlbum && (
+            <motion.div
+               key="album-modal"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               exit={{ opacity: 0 }}
+               transition={{ duration: 0.3 }}
+               className={styles.albumModalOverlay}
+               onClick={() => setSelectedAlbum(null)}
+               data-lenis-prevent
+               onWheel={(e) => e.stopPropagation()}
+            >
+                <motion.div
+                   initial={{ opacity: 0, y: 60 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   exit={{ opacity: 0, y: 30 }}
+                   transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+                   className={styles.albumModalContent}
+                   onClick={(e) => e.stopPropagation()}
+                >
+                   {/* Close */}
+                   <button className={styles.modalCloseButton} onClick={() => setSelectedAlbum(null)}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                   </button>
+
+                   {/* Cover Art — top area on mobile, left on desktop */}
+                   <div className={styles.modalCoverArea}>
+                       <motion.div 
+                          className={styles.modalImageWrapper} 
+                          layoutId={`album-img-${selectedAlbum.collectionId}`}
+                       >
+                           <Image 
+                              src={selectedAlbum.artworkUrl100.replace('100x100bb', '1000x1000bb')}
+                              alt={selectedAlbum.collectionName}
+                              fill
+                              priority
+                              style={{ objectFit: 'cover' }}
+                           />
+                       </motion.div>
+                   </div>
+                   
+                   {/* Details */}
+                   <div className={styles.modalDetails}>
+                       <div className={styles.modalDetailsInner}>
+                          {/* Type badge */}
+                          <motion.span 
+                             initial={{ opacity: 0 }}
+                             animate={{ opacity: 1 }}
+                             transition={{ delay: 0.15 }}
+                             className={styles.modalBadge}
+                             style={{ borderColor: themeColor, color: themeColor }}
+                          >
+                             {selectedAlbum.collectionType || 'Album'}
+                          </motion.span>
+                       
+                          {/* Title */}
+                          <motion.h2 
+                             initial={{ opacity: 0, y: 12 }}
+                             animate={{ opacity: 1, y: 0 }}
+                             transition={{ delay: 0.2 }}
+                             className={styles.modalTitle}
+                          >
+                             {selectedAlbum.collectionName}
+                          </motion.h2>
+
+                          {/* Quick stats row */}
+                          <motion.div
+                             initial={{ opacity: 0 }}
+                             animate={{ opacity: 1 }}
+                             transition={{ delay: 0.3 }}
+                             className={styles.modalQuickStats}
+                          >
+                             <div className={styles.modalStat}>
+                                <span className={styles.modalStatLabel}>Year</span>
+                                <span className={styles.modalStatValue}>{new Date(selectedAlbum.releaseDate).getFullYear()}</span>
+                             </div>
+                             <div className={styles.modalStatDivider} />
+                             <div className={styles.modalStat}>
+                                <span className={styles.modalStatLabel}>Tracks</span>
+                                <span className={styles.modalStatValue}>{selectedAlbum.trackCount}</span>
+                             </div>
+                             <div className={styles.modalStatDivider} />
+                             <div className={styles.modalStat}>
+                                <span className={styles.modalStatLabel}>Genre</span>
+                                <span className={styles.modalStatValue}>{selectedAlbum.primaryGenreName}</span>
+                             </div>
+                          </motion.div>
+
+                          {/* Release & label info */}
+                          <motion.div 
+                             initial={{ opacity: 0 }}
+                             animate={{ opacity: 1 }}
+                             transition={{ delay: 0.35 }}
+                             className={styles.modalExtraInfo}
+                          >
+                             <p className={styles.modalInfoLine}>
+                                <span>Released</span>
+                                {new Date(selectedAlbum.releaseDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                             </p>
+                             <p className={styles.modalInfoLine}>
+                                <span>Label</span>
+                                {selectedAlbum.copyright ? selectedAlbum.copyright.replace(/^℗\s*\d{4}\s*/, '').substring(0, 35) : 'N/A'}
+                             </p>
+                          </motion.div>
+                       
+                          {/* Actions */}
+                          <motion.div 
+                             initial={{ opacity: 0, y: 10 }}
+                             animate={{ opacity: 1, y: 0 }}
+                             transition={{ delay: 0.45 }}
+                             className={styles.modalActions}
+                          >
+                              <a 
+                                  href={selectedAlbum.collectionViewUrl} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className={styles.modalPrimaryBtn}
+                                  style={{ background: themeColor }}
+                              >
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="8 5 19 12 8 19 8 5" /></svg>
+                                  Apple Music
+                              </a>
+                              <button 
+                                  className={styles.modalSecondaryBtn}
+                                  onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(selectedAlbum.collectionViewUrl); }}
+                              >
+                                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                                  Copy Link
+                              </button>
+                          </motion.div>
+                       </div>
+                   </div>
+              </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>,
+      document.body
+      )}
 
       <style jsx global>{`
         ::-webkit-scrollbar {
