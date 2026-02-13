@@ -36,7 +36,12 @@ const Navbar = () => {
     checkAuth();
 
     const fetchMenuItems = async () => {
-      const CACHE_KEY = 'menu-images-v2';
+      // Clear old cache keys
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('menu-images-v1');
+        localStorage.removeItem('menu-images-v2');
+      }
+      const CACHE_KEY = 'menu-images-v3';
       const cached = getCache<Array<{ id: string; label: string; href: string; image: string }>>(CACHE_KEY);
       
       if (cached) {

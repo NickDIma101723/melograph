@@ -173,7 +173,7 @@ export default function DashboardPage() {
 
                         {/* COLUMN 2: TRACKS */}
                         <div className={styles.tracksCol}>
-                            <div className={styles.sectionTitle}>GLOBAL TOP 20</div>
+                            <div className={styles.sectionTitle}>GLOBAL TOP 100</div>
                             
                             {data.topTracks.slice(0, 10).map((track, i) => (
                                 <motion.div 
