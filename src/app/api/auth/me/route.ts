@@ -6,7 +6,9 @@ export async function GET() {
   try {
     const session = await getSession();
     if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+      // Return 200 with null user instead of 401 to avoid noisy console errors
+      // Client code already checks for data.user presence
+      return NextResponse.json({ user: null });
     }
 
     // Always fetch fresh data from DB to ensure avatar/profile updates are reflected immediately

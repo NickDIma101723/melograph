@@ -150,8 +150,8 @@
 // RIGHT SIDE - NEXT ARTIST (PARTIALLY CUT OFF)
 .sideSection {
   position: absolute;
-  right: 11%; /* Moved closer to center */
-  bottom: -40%; /* Pushed down to create gap */
+  right: 5%;
+  bottom: -35%;
   width: 1000px;
   height: 1000px;
   z-index: 40;
@@ -192,20 +192,38 @@
 // Large desktops (2560px+)
 @media (min-width: 2560px) {
   .heroImage, .sideSection {
-    width: 900px;
-    height: 900px;
+    width: 750px;
+    height: 750px;
+  }
+  
+  .heroSection {
+    left: 45%;
+  }
+  
+  .sideSection {
+    right: 8%;
+    bottom: -30%;
+  }
+  
+  .sidebar {
+    left: 22%;
   }
 }
 
 // Standard desktops (1920px - 2559px)
 @media (max-width: 2559px) and (min-width: 1920px) {
   .heroImage, .sideSection {
-    width: 32vw; /* Converted to fluid */
-    height: 32vw;
+    width: 30vw; /* Converted to fluid */
+    height: 30vw;
+  }
+  
+  .sideSection {
+    right: 4%;
+    bottom: -30%;
   }
   
   .sidebar {
-      left: 20%; /* Proportional positioning */
+      left: 18%; /* Proportional positioning */
   }
 }
 

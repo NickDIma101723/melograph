@@ -32,3 +32,18 @@ export const setCache = <T>(key: string, value: T, ttlInMinutes: number) => {
   };
   localStorage.setItem(key, JSON.stringify(item));
 };
+
+/**
+ * Safely parse a fetch Response as JSON.
+ * If the response body is not valid JSON (e.g. an HTML error page from a proxy),
+ * returns the fallback value instead of throwing.
+ */
+export async function safeJson<T = any>(res: Response, fallback: T | null = null): Promise<T> {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    console.error(`Expected JSON but got: ${text.slice(0, 120)}...`);
+    return fallback as T;
+  }
+}

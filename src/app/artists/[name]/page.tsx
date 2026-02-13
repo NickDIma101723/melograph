@@ -14,9 +14,10 @@ async function getArtistData(name: string) {
   try {
     // 1. Get Artist ID
     const searchRes = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(name)}&entity=musicArtist&limit=1`, { next: { revalidate: 3600 } });
-    const searchData = await searchRes.json();
+    let searchData;
+    try { searchData = await searchRes.json(); } catch { return null; }
     
-    if (!searchData.results || searchData.results.length === 0) return null;
+    if (!searchData?.results || searchData.results.length === 0) return null;
     const artist = searchData.results[0];
     const artistId = artist.artistId;
 
@@ -26,14 +27,17 @@ async function getArtistData(name: string) {
         fetch(`https://itunes.apple.com/lookup?id=${artistId}&entity=song&limit=25`, { next: { revalidate: 3600 } })
     ]);
 
-    const [albumData, songData] = await Promise.all([
-        albumRes.json(),
-        songRes.json()
-    ]);
+    let albumData, songData;
+    try {
+        [albumData, songData] = await Promise.all([
+            albumRes.json(),
+            songRes.json()
+        ]);
+    } catch { return null; }
 
     // Filter out the artist info (which is usually the first result in lookup)
-    const albums = albumData.results.filter((item: any) => item.wrapperType === 'collection');
-    const songs = songData.results.filter((item: any) => item.wrapperType === 'track');
+    const albums = albumData?.results?.filter((item: any) => item.wrapperType === 'collection') || [];
+    const songs = songData?.results?.filter((item: any) => item.wrapperType === 'track') || [];
 
     return {
       info: artist,

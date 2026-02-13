@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { safeJson } from '@/lib/client-cache';
 import styles from '../auth.module.scss';
 
 function ResetPasswordForm() {
@@ -49,10 +50,10 @@ function ResetPasswordForm() {
         body: JSON.stringify({ token, email, newPassword })
       });
 
-      const data = await res.json();
+      const data = await safeJson(res, { error: 'Server returned an invalid response' });
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to reset password');
+        throw new Error(data?.error || 'Failed to reset password');
       }
 
       setSuccess(true);

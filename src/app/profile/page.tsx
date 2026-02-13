@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import styles from './profile.module.scss';
 import { useRouter } from 'next/navigation';
+import { safeJson } from '@/lib/client-cache';
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -41,8 +42,8 @@ export default function ProfilePage() {
                     // maybe handle 500 by not crashing?
                     return; 
                 }
-                const userData = await meRes.json();
-                if (!userData.user) { router.push('/auth'); return; }
+                const userData: any = await safeJson(meRes, { user: null });
+                if (!userData?.user) { router.push('/auth'); return; }
                 
                 setUser(userData.user);
                 setNewAvatar(userData.user.avatar_url || '');
@@ -50,7 +51,7 @@ export default function ProfilePage() {
                 setNewEmail(userData.user.email || '');
 
                 const likesRes = await fetch('/api/likes');
-                if (likesRes.ok) { setLikes(await likesRes.json()); }
+                if (likesRes.ok) { setLikes(await safeJson(likesRes, [])); }
             } catch (err) { console.error(err); }
             finally { setLoading(false); }
         };

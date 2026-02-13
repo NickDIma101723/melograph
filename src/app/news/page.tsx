@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { getCache, setCache } from '@/lib/client-cache';
+import { getCache, setCache, safeJson } from '@/lib/client-cache';
 import styles from './news.module.scss';
 interface Article {
   source: { id: string | null; name: string };
@@ -44,10 +44,10 @@ export default function NewsPage() {
 
       try {
         const res = await fetch('/api/news');
-        let validArticles = [];
+        let validArticles: Article[] = [];
 
         if (res.ok) {
-           const data = await res.json();
+           const data = await safeJson(res, { articles: [] });
            if (data.articles) validArticles = data.articles;
         }
 
