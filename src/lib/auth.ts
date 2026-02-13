@@ -38,9 +38,14 @@ export async function createSession(user: any) {
   const session = await encrypt({ user: { id: user.id } });
   const cookieStore = await cookies();
 
+  // In Codespaces, the site is served over HTTPS even in development,
+  // so cookies must be marked secure or the browser silently rejects them.
+  const isSecure = process.env.NODE_ENV === 'production' 
+    || (process.env.NEXT_PUBLIC_SITE_URL || '').startsWith('https');
+
   cookieStore.set('session', session, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecure,
     expires,
     sameSite: 'lax',
     path: '/',

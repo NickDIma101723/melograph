@@ -33,7 +33,7 @@
 // LEFT SIDEBAR
 .sidebar {
   position: fixed;
-  left: 28%; /* Even closer to the centered image */
+  left: 22%;
   top: 50%;
   transform: translateY(-50%);
   z-index: 100;
@@ -117,7 +117,7 @@
 // CENTER - HERO IMAGE
 .heroSection {
   position: absolute;
-  left: 47%;
+  left: 43%;
   top: 54%;
   transform: translate(-50%, -50%);
   z-index: 50;
@@ -197,7 +197,28 @@
   }
   
   .heroSection {
-    left: 45%;
+    left: 40%;
+  }
+  
+  .sideSection {
+    right: 12%;
+    bottom: -30%;
+  }
+  
+  .sidebar {
+    left: 18%;
+  }
+}
+
+// Standard desktops (1920px - 2559px)
+@media (max-width: 2559px) and (min-width: 1920px) {
+  .heroImage, .sideSection {
+    width: 30vw;
+    height: 30vw;
+  }
+  
+  .heroSection {
+    left: 40%;
   }
   
   .sideSection {
@@ -206,24 +227,7 @@
   }
   
   .sidebar {
-    left: 22%;
-  }
-}
-
-// Standard desktops (1920px - 2559px)
-@media (max-width: 2559px) and (min-width: 1920px) {
-  .heroImage, .sideSection {
-    width: 30vw; /* Converted to fluid */
-    height: 30vw;
-  }
-  
-  .sideSection {
-    right: 4%;
-    bottom: -30%;
-  }
-  
-  .sidebar {
-      left: 18%; /* Proportional positioning */
+      left: 14%;
   }
 }
 
