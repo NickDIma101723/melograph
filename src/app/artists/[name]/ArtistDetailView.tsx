@@ -442,6 +442,16 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
        // Cleanup if needed
     };
   }, []);
+
+  // Lock body scroll when player is expanded fullscreen
+  useEffect(() => {
+    if (isPlayerExpanded) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isPlayerExpanded]);
   
   // Scroll Handle for Horizontal Section
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -856,9 +866,6 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
                    <span className={styles.discographyDot} style={{ background: themeColor }} />
                    {uniqueAlbums.length} Releases
                 </span>
-                <h2 className={styles.discographyTitle}>
-                   Albums &<br/>Singles
-                </h2>
              </motion.div>
              <motion.div 
                 className={styles.discographyHeaderRight}
@@ -938,157 +945,166 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
       {/* AUDIO FALLBACK (hidden) */}
       <audio ref={audioFallbackRef} style={{ display: 'none' }} />
 
-      {/* NOW PLAYING BAR */}
-      <AnimatePresence>
-        {(currentTrackId || isLoading) && currentSong && (
-          <motion.div
-            key="now-playing"
-            initial={{ y: 120, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 120, opacity: 0 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className={`${styles.nowPlayingBar} ${isPlayerExpanded ? styles.nowPlayingExpanded : ''}`}
-          >
-            {/* Expanded Video View */}
-            {isPlayerExpanded && videoId && (
-              <div className={styles.npVideoContainer}>
-                <YouTube
-                  videoId={videoId}
-                  opts={{
-                    width: '100%',
-                    height: '100%',
-                    playerVars: { autoplay: 1, controls: 0, modestbranding: 1, rel: 0, showinfo: 0, playsinline: 1 }
-                  }}
-                  onReady={onPlayerReady}
-                  onStateChange={onPlayerStateChange}
-                  className={styles.npYouTube}
-                />
-              </div>
-            )}
-
-            {/* Hidden YouTube player when collapsed */}
-            {!isPlayerExpanded && videoId && (
-              <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-                <YouTube
-                  videoId={videoId}
-                  opts={{ height: '0', width: '0', playerVars: { autoplay: 1, playsinline: 1 } }}
-                  onReady={onPlayerReady}
-                  onStateChange={onPlayerStateChange}
-                />
-              </div>
-            )}
-
-            {/* Controls Bar */}
-            <div className={styles.npControls}>
-              {/* Song Info */}
-              <div className={styles.npInfo}>
-                <div className={styles.npArt}>
-                  <Image
-                    src={currentSong.artworkUrl100?.replace('100x100bb', '200x200bb') || ''}
-                    alt={currentSong.trackName || ''}
-                    fill
-                    style={{ objectFit: 'cover' }}
-                  />
-                </div>
-                <div className={styles.npMeta}>
-                  <span className={styles.npTitle}>{currentSong.trackName}</span>
-                  <span className={styles.npArtist}>{currentSong.artistName}</span>
-                </div>
-              </div>
-
-              {/* Progress Bar */}
-              <div className={styles.npProgressArea}>
-                <span className={styles.npTime}>
-                  {Math.floor(currentTime / 60)}:{Math.floor(currentTime % 60).toString().padStart(2, '0')}
-                </span>
-                <div className={styles.npProgressBar}>
-                  <motion.div
-                    className={styles.npProgressFill}
-                    style={{
-                      width: `${currentSong.trackTimeMillis ? (currentTime / (currentSong.trackTimeMillis / 1000)) * 100 : 0}%`,
-                      background: themeColor
+      {/* NOW PLAYING BAR — rendered via portal to avoid transform ancestors breaking position:fixed */}
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {(currentTrackId || isLoading) && currentSong && (
+            <motion.div
+              key="now-playing"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'tween', duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
+              className={`${styles.nowPlayingBar} ${isPlayerExpanded ? styles.nowPlayingExpanded : ''}`}
+            >
+              {/* Expanded Video View */}
+              {isPlayerExpanded && videoId && (
+                <div className={styles.npVideoContainer}>
+                  <YouTube
+                    videoId={videoId}
+                    opts={{
+                      width: '100%',
+                      height: '100%',
+                      playerVars: { autoplay: 1, controls: 0, modestbranding: 1, rel: 0, showinfo: 0, playsinline: 1, iv_load_policy: 3, disablekb: 1, fs: 0 }
                     }}
+                    onReady={onPlayerReady}
+                    onStateChange={onPlayerStateChange}
+                    className={styles.npYouTube}
                   />
                 </div>
-                <span className={styles.npTime}>
-                  {(() => {
-                    const ms = currentSong.trackTimeMillis || 0;
-                    return `${Math.floor(ms / 60000)}:${Math.floor((ms % 60000) / 1000).toString().padStart(2, '0')}`;
-                  })()}
-                </span>
-              </div>
+              )}
 
-              {/* Action Buttons */}
-              <div className={styles.npActions}>
-                {/* Play/Pause */}
-                <button
-                  className={styles.npPlayBtn}
-                  onClick={() => {
-                    if (isLoading) return;
-                    if (isPlaying) {
-                      if (isFallbackPlaying) audioFallbackRef.current?.pause();
-                      else playerRef.current?.pauseVideo();
-                      setIsPlaying(false);
-                    } else {
-                      if (isFallbackPlaying) audioFallbackRef.current?.play();
-                      else playerRef.current?.playVideo();
-                      setIsPlaying(true);
-                    }
-                  }}
-                  style={{ color: themeColor }}
-                >
-                  {isLoading ? (
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                      style={{ width: 18, height: 18, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%' }}
-                    />
-                  ) : isPlaying ? (
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
-                  ) : (
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3" /></svg>
-                  )}
-                </button>
+              {/* Hidden YouTube player when collapsed */}
+              {!isPlayerExpanded && videoId && (
+                <div style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+                  <YouTube
+                    videoId={videoId}
+                    opts={{ height: '0', width: '0', playerVars: { autoplay: 1, playsinline: 1 } }}
+                    onReady={onPlayerReady}
+                    onStateChange={onPlayerStateChange}
+                  />
+                </div>
+              )}
 
-                {/* Expand/Collapse Video */}
-                {videoId && !isFallbackPlaying && (
-                  <button
-                    className={styles.npExpandBtn}
-                    onClick={() => setIsPlayerExpanded(!isPlayerExpanded)}
+              {/* Controls Bar */}
+              <div className={styles.npBar}>
+                {/* Song Info */}
+                <div className={styles.npSongInfo}>
+                  <span className={styles.npTitle}>{currentSong.trackName}</span>
+                  <span className={styles.npArtistName}>{currentSong.artistName}</span>
+                </div>
+
+                {/* Progress Bar */}
+                <div className={styles.npProgress}>
+                  <span className={styles.npTimeLabel}>
+                    {Math.floor(currentTime / 60)}:{Math.floor(currentTime % 60).toString().padStart(2, '0')}
+                  </span>
+                  <div
+                    className={styles.npTrack}
+                    onClick={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const fraction = (e.clientX - rect.left) / rect.width;
+                      const durationSec = (currentSong.trackTimeMillis || 0) / 1000;
+                      const seekTo = fraction * durationSec;
+                      if (isFallbackPlaying && audioFallbackRef.current) {
+                        audioFallbackRef.current.currentTime = seekTo;
+                      } else if (playerRef.current?.seekTo) {
+                        playerRef.current.seekTo(seekTo, true);
+                      }
+                      setCurrentTime(seekTo);
+                    }}
                   >
-                    {isPlayerExpanded ? (
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" /><line x1="14" y1="10" x2="21" y2="3" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
+                    <motion.div
+                      className={styles.npTrackFill}
+                      style={{
+                        width: `${currentSong.trackTimeMillis ? (currentTime / (currentSong.trackTimeMillis / 1000)) * 100 : 0}%`,
+                        background: themeColor
+                      }}
+                    />
+                  </div>
+                  <span className={styles.npTimeLabel}>
+                    {(() => {
+                      const ms = currentSong.trackTimeMillis || 0;
+                      return `${Math.floor(ms / 60000)}:${Math.floor((ms % 60000) / 1000).toString().padStart(2, '0')}`;
+                    })()}
+                  </span>
+                </div>
+
+                {/* Action Buttons */}
+                <div className={styles.npButtons}>
+                  {/* Play/Pause */}
+                  <button
+                    className={styles.npPlayPause}
+                    onClick={() => {
+                      if (isLoading) return;
+                      if (isPlaying) {
+                        if (isFallbackPlaying) audioFallbackRef.current?.pause();
+                        else playerRef.current?.pauseVideo();
+                        setIsPlaying(false);
+                      } else {
+                        if (isFallbackPlaying) audioFallbackRef.current?.play();
+                        else playerRef.current?.playVideo();
+                        setIsPlaying(true);
+                      }
+                    }}
+                    style={{ color: themeColor }}
+                  >
+                    {isLoading ? (
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                        style={{ width: 18, height: 18, border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%' }}
+                      />
+                    ) : isPlaying ? (
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1" /><rect x="14" y="4" width="4" height="16" rx="1" /></svg>
                     ) : (
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21 6 3" /></svg>
                     )}
                   </button>
-                )}
 
-                {/* Close */}
-                <button
-                  className={styles.npCloseBtn}
-                  onClick={() => {
-                    playerRef.current?.pauseVideo();
-                    if (audioFallbackRef.current) {
-                      audioFallbackRef.current.pause();
-                      audioFallbackRef.current.currentTime = 0;
-                    }
-                    setCurrentTrackId(null);
-                    setVideoId(null);
-                    setIsPlaying(false);
-                    setIsFallbackPlaying(false);
-                    setCurrentSong(null);
-                    setCurrentTime(0);
-                    setIsPlayerExpanded(false);
-                  }}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                </button>
+                  {/* Expand/Collapse Video */}
+                  {videoId && !isFallbackPlaying && (
+                    <button
+                      className={styles.npIconBtn}
+                      onClick={() => setIsPlayerExpanded(!isPlayerExpanded)}
+                    >
+                      {isPlayerExpanded ? (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="4 14 10 14 10 20" /><polyline points="20 10 14 10 14 4" /><line x1="14" y1="10" x2="21" y2="3" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
+                      ) : (
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
+                      )}
+                    </button>
+                  )}
+
+                  {/* Close */}
+                  <button
+                    className={styles.npIconBtn}
+                    onClick={() => {
+                      try { playerRef.current?.stopVideo(); } catch {}
+                      playerRef.current = null;
+                      if (audioFallbackRef.current) {
+                        audioFallbackRef.current.pause();
+                        audioFallbackRef.current.currentTime = 0;
+                        audioFallbackRef.current.src = '';
+                      }
+                      setVideoId(null);
+                      setCurrentTrackId(null);
+                      setIsPlaying(false);
+                      setIsFallbackPlaying(false);
+                      setCurrentSong(null);
+                      setCurrentTime(0);
+                      setIsPlayerExpanded(false);
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                  </button>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
