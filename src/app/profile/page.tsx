@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import styles from './profile.module.scss';
@@ -16,6 +16,10 @@ export default function ProfilePage() {
     const [activeTab, setActiveTab] = useState<'favorites' | 'uploads'>('favorites');
     const [hoveredSong, setHoveredSong] = useState<number | null>(null);
     
+    // Playback State
+    const [playingId, setPlayingId] = useState<string | null>(null);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
     // Edit Mode
     const [isEditing, setIsEditing] = useState(false);
     const [newAvatar, setNewAvatar] = useState('');
@@ -27,13 +31,24 @@ export default function ProfilePage() {
         const init = async () => {
             try {
                 const meRes = await fetch('/api/auth/me');
-                if (!meRes.ok) { router.push('/auth'); return; }
+                if (!meRes.ok) { 
+                    // Log error but check status. 401 is expected if not logged in.
+                    if (meRes.status === 401) {
+                         router.push('/auth');
+                         return;
+                    }
+                    console.error('Auth check failed:', meRes.status);
+                    // maybe handle 500 by not crashing?
+                    return; 
+                }
                 const userData = await meRes.json();
                 if (!userData.user) { router.push('/auth'); return; }
+                
                 setUser(userData.user);
                 setNewAvatar(userData.user.avatar_url || '');
                 setNewUsername(userData.user.username || '');
                 setNewEmail(userData.user.email || '');
+
                 const likesRes = await fetch('/api/likes');
                 if (likesRes.ok) { setLikes(await likesRes.json()); }
             } catch (err) { console.error(err); }
@@ -64,6 +79,53 @@ export default function ProfilePage() {
         finally { setIsSaving(false); }
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handlePlayPreview = (song: any) => {
+        if (!audioRef.current) return;
+        
+        if (playingId === song.id) {
+            audioRef.current.pause();
+            setPlayingId(null);
+            return;
+        }
+
+        if (!song.preview_url) {
+            alert('No preview available for this song');
+            return;
+        }
+
+        audioRef.current.src = song.preview_url;
+        audioRef.current.play();
+        setPlayingId(song.id);
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleRemoveLike = async (e: React.MouseEvent, song: any) => {
+        e.stopPropagation();
+        if (playingId === song.id) {
+            audioRef.current?.pause();
+            setPlayingId(null);
+        }
+
+        // Optimistic remove
+        setLikes(prev => prev.filter(l => l.id !== song.id));
+
+        try {
+            await fetch('/api/likes', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    artist_name: song.artist_name,
+                    song_title: song.song_title,
+                    cover_url: song.cover_url
+                })
+            });
+        } catch (err) {
+            console.error('Failed to remove like', err);
+            // Revert logic could be added here
+        }
+    };
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
@@ -76,10 +138,14 @@ export default function ProfilePage() {
     if (loading) {
         return (
             <div className={styles.loadingScreen}>
-                <div className={styles.loadingText}>
-                    <span>LOADING</span>
-                    <span className={styles.loadingDot}>_</span>
+                <div className={styles.loadingWave}>
+                    <div className={styles.bar} />
+                    <div className={styles.bar} />
+                    <div className={styles.bar} />
+                    <div className={styles.bar} />
+                    <div className={styles.bar} />
                 </div>
+                <div className={styles.loadingText}>INITIALIZING</div>
             </div>
         );
     }
@@ -90,6 +156,7 @@ export default function ProfilePage() {
 
     return (
         <div className={styles.container}>
+            <audio ref={audioRef} onEnded={() => setPlayingId(null)} />
 
             {/* ═══ FULL-BLEED HERO ═══ */}
             <section className={styles.hero}>
@@ -132,7 +199,7 @@ export default function ProfilePage() {
                 </div>
             </section>
 
-            {/* ═══ STATS GRID — 4 Column like Artist Detail ═══ */}
+            {/* ═══ STATS GRID ═══ */}
             <div className={styles.statsBar}>
                 <div className={styles.statCell}>
                     <span className={styles.statLabel}>Liked Songs</span>
@@ -187,7 +254,7 @@ export default function ProfilePage() {
                 )}
             </AnimatePresence>
 
-            {/* ═══ TRACKS SECTION — Matching Artist Detail ═══ */}
+            {/* ═══ TRACKS SECTION ═══ */}
             <section className={styles.tracksSection}>
                 <div className={styles.tracksHeader}>
                     <div className={styles.tracksHeaderLeft}>
@@ -247,6 +314,7 @@ export default function ProfilePage() {
                                             className={styles.songRow}
                                             onMouseEnter={() => setHoveredSong(i)}
                                             onMouseLeave={() => setHoveredSong(null)}
+                                            onClick={() => handlePlayPreview(song)}
                                             initial={{ opacity: 0, x: -30 }}
                                             animate={{ opacity: 1, x: 0 }}
                                             transition={{ delay: i * 0.03, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
@@ -259,35 +327,67 @@ export default function ProfilePage() {
                                             <motion.div 
                                                 className={styles.rowHoverBg}
                                                 initial={false}
-                                                animate={{ opacity: hoveredSong === i ? 1 : 0 }}
+                                                animate={{ opacity: hoveredSong === i || playingId === song.id ? 1 : 0 }}
                                                 transition={{ duration: 0.3 }}
                                             />
 
                                             <div className={styles.songContent}>
                                                 <span className={styles.songIndex} style={{
-                                                    color: hoveredSong === i ? '#fff' : undefined
+                                                    color: (hoveredSong === i || playingId === song.id) ? '#fff' : undefined
                                                 }}>
-                                                    {String(i + 1).padStart(2, '0')}
+                                                    {playingId === song.id ? (
+                                                        <span style={{ fontSize: '0.7rem', animation: 'pulse 1s infinite' }}>▶ LSTN</span>
+                                                    ) : String(i + 1).padStart(2, '0')}
                                                 </span>
                                                 
                                                 <div className={styles.songImage}>
                                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                                     <img src={song.cover_url || '/placeholder.png'} alt="" />
                                                     <div className={styles.songImageOverlay} style={{
-                                                        opacity: hoveredSong === i ? 0 : 1
+                                                        opacity: (hoveredSong === i || playingId === song.id) ? 0 : 1
                                                     }} />
                                                 </div>
 
                                                 <div className={styles.songMeta}>
-                                                    <span className={styles.songTitle}>{song.song_title}</span>
+                                                    <span className={styles.songTitle} style={{ color: playingId === song.id ? '#4ade80' : undefined }}>{song.song_title}</span>
                                                     <span className={styles.songArtist}>{song.artist_name}</span>
                                                 </div>
                                             </div>
 
                                             <div className={styles.songRight}>
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: hoveredSong === i ? 1 : 0.3 }}>
-                                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                                                </svg>
+                                                {/* REMOVE BTN */}
+                                                {(hoveredSong === i || playingId === song.id) && (
+                                                    <div 
+                                                        onClick={(e) => handleRemoveLike(e, song)}
+                                                        style={{ 
+                                                            display: 'flex', 
+                                                            alignItems: 'center', 
+                                                            justifyContent: 'center',
+                                                            marginRight: '1rem',
+                                                            color: '#ff4444', 
+                                                            cursor: 'pointer', 
+                                                            opacity: 0.8 
+                                                        }}
+                                                        title="Remove from Liked"
+                                                    >
+                                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <path d="M3 6h18"/>
+                                                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                                                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                                                        </svg>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* PLAY ICON */}
+                                                <div style={{ width: 20 }}>
+                                                    {playingId === song.id ? (
+                                                        <span style={{ fontSize: '1.2rem', color: '#4ade80' }}>❚❚</span>
+                                                    ) : (
+                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: hoveredSong === i ? 1 : 0.3 }}>
+                                                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                                        </svg>
+                                                    )}
+                                                </div>
                                             </div>
                                         </motion.div>
                                     ))}

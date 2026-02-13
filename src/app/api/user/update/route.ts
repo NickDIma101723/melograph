@@ -25,21 +25,26 @@ export async function POST(request: Request) {
         
         const updatedUser = result[0];
         
-        // IMPORTANT: Must update the session cookie so the frontend sees new avatar immediately
-        // Sanitize
+        // Update session, but avoid storing large Data URIs in the cookie
         const sessionUser = {
             id: updatedUser.id,
             email: updatedUser.email,
             username: updatedUser.username,
             is_artist: updatedUser.is_artist,
-            avatar_url: updatedUser.avatar_url
+            // If avatar is a Base64 string, don't put it in the cookie (it's too big). 
+            // The DB has it, and /api/auth/me fetches from DB now.
+            avatar_url: (updatedUser.avatar_url && updatedUser.avatar_url.startsWith('data:')) 
+                        ? null 
+                        : updatedUser.avatar_url
         };
         
         await createSession(sessionUser);
 
-        return NextResponse.json({ user: sessionUser });
+        // Return the FULL user object (from DB) to the frontend
+        return NextResponse.json({ user: updatedUser });
 
     } catch(e) {
-        return NextResponse.json({ error: 'Update failed' }, { status: 500 });
+        console.error('PROFILE UPDATE ERROR:', e);
+        return NextResponse.json({ error: 'Update failed', details: String(e) }, { status: 500 });
     }
 }
