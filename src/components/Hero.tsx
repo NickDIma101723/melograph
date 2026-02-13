@@ -467,7 +467,8 @@ export default function Hero() {
 
   const modalVideoOptions = {
     playerVars: {
-      autoplay: 0, 
+      autoplay: 1, 
+      playsinline: 1,
       controls: 0, 
       rel: 0,
       showinfo: 0,

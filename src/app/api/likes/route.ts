@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     try {
-        const { artist_name, song_title, cover_url } = await request.json();
+        const { artist_name, song_title, cover_url, preview_url } = await request.json();
 
         // Check if already liked
         const existing = await sql`
@@ -41,8 +41,8 @@ export async function POST(request: Request) {
         } else {
             // Like
             await sql`
-                INSERT INTO likes (user_id, artist_name, song_title, cover_url)
-                VALUES (${session.user.id}, ${artist_name}, ${song_title}, ${cover_url})
+                INSERT INTO likes (user_id, artist_name, song_title, cover_url, preview_url)
+                VALUES (${session.user.id}, ${artist_name}, ${song_title}, ${cover_url}, ${preview_url})
             `;
             return NextResponse.json({ liked: true });
         }

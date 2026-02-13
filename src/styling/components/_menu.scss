@@ -222,7 +222,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center; // Center content horizontally on mobile
+  align-items: flex-start; // Left align content on mobile
   padding: 1.5rem;
   position: relative;
   

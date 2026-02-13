@@ -93,7 +93,8 @@ export default function Top20Page() {
             body: JSON.stringify({
                 artist_name: song.artist,
                 song_title: song.title,
-                cover_url: song.image
+                cover_url: song.image,
+                preview_url: song.previewUrl // Added
             }),
             headers: { 'Content-Type': 'application/json' }
         });
@@ -347,7 +348,8 @@ export default function Top20Page() {
                         initial={false}
                         animate={{ 
                             scale: likedTrackIds.has(song.title) ? 1 : 1,
-                            color: likedTrackIds.has(song.title) ? '#ef4444' : '#ffffff'
+                            color: likedTrackIds.has(song.title) ? '#ef4444' : '#ffffff',
+                            opacity: (isPlaying && selectedIndex === idx) ? 0 : 1
                         }}
                         whileHover={{ scale: 1.2 }}
                         whileTap={{ scale: 0.8 }}
