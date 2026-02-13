@@ -392,7 +392,9 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
             throw new Error(`API Error: ${res.status}`);
           }
 
-          const data = await res.json();
+          const text = await res.text();
+          let data;
+          try { data = JSON.parse(text); } catch { throw new Error('Invalid JSON from YouTube API'); }
           if (data.videoId) {
               console.log(`Playing via YouTube: ${query}`);
               setVideoId(data.videoId);

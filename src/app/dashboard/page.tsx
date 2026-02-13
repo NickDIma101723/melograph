@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import styles from './dashboard.module.scss';
 import Navbar from '@/components/Navbar';
+import { safeJson } from '@/lib/client-cache';
 
 interface DashboardData {
     topTracks: { title: string; artist: string; image: string }[];
@@ -35,7 +36,7 @@ export default function DashboardPage() {
         fetch('/api/dashboard')
             .then(res => {
                 if (!res.ok) throw new Error('Failed to fetch data');
-                return res.json();
+                return safeJson(res);
             })
             .then(data => {
                 setData(data);

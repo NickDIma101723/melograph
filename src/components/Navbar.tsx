@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { m as motion, AnimatePresence } from 'framer-motion';
 import { useUI } from '@/context/UIContext';
 import { usePathname } from 'next/navigation';
-import { getCache, setCache } from '@/lib/client-cache';
+import { getCache, setCache, safeJson } from '@/lib/client-cache';
 import { LazyMotion, domAnimation } from 'framer-motion';
 
 const Navbar = () => {
@@ -24,8 +24,8 @@ const Navbar = () => {
         try {
             const res = await fetch('/api/auth/me', { cache: 'no-store' }); // Ensure fresh check
             if (res.ok) {
-                const data = await res.json();
-                if (data.user) setIsAuthenticated(true);
+                const data = await safeJson(res, { user: null });
+                if (data?.user) setIsAuthenticated(true);
                 else setIsAuthenticated(false);
             }
         } catch (e) {
@@ -47,7 +47,7 @@ const Navbar = () => {
       try {
         const response = await fetch('/api/menu-images');
         if (response.ok) {
-          const data = await response.json();
+          const data = await safeJson(response, []);
           setMenuItems(data);
           setCache(CACHE_KEY, data, 60); // Cache for 1 hour
         }

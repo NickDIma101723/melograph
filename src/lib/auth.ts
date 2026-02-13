@@ -33,7 +33,9 @@ export async function getSession() {
 
 export async function createSession(user: any) {
   const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-  const session = await encrypt({ user });
+  // Only store minimal data (id) to keep cookie under 4KB limit.
+  // Full user data is fetched from DB via /api/auth/me when needed.
+  const session = await encrypt({ user: { id: user.id } });
   const cookieStore = await cookies();
 
   cookieStore.set('session', session, {

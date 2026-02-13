@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { safeJson } from '@/lib/client-cache';
 import styles from './auth.module.scss';
 export default function AuthPage() {
   const router = useRouter();
@@ -32,10 +33,10 @@ export default function AuthPage() {
                 body: JSON.stringify({ email }),
                 headers: { 'Content-Type': 'application/json' }
              });
-             const data = await res.json();
-             if (!res.ok) throw new Error(data.error || 'Failed to send reset email');
+             const data: any = await safeJson(res, { error: 'Server returned an invalid response' });
+             if (!res.ok) throw new Error(data?.error || 'Failed to send reset email');
              
-             if (data.devUrl) {
+             if (data?.devUrl) {
                  // Dev mode: show the link directly
                  setSuccessMsg(`Reset link generated! Open this URL: ${data.devUrl}`);
              } else {
@@ -57,7 +58,7 @@ export default function AuthPage() {
             headers: { 'Content-Type': 'application/json' }
         });
 
-        const data = await res.json();
+        const data = await safeJson(res, { error: 'Server returned an invalid response' });
 
         if (!res.ok) throw new Error(data.error || 'Authentication failed');
 

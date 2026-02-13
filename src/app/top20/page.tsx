@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import Lenis from 'lenis';
 import gsap from 'gsap';
-import { getCache, setCache } from '@/lib/client-cache';
+import { getCache, setCache, safeJson } from '@/lib/client-cache';
 import styles from './top20.module.scss';
 import { useUI } from '@/context/UIContext';
 // iTunes RSS Interfaces
@@ -58,13 +58,13 @@ export default function Top20Page() {
     
     // Check Auth
     fetch('/api/auth/me').then(res => {
-         if (res.ok) return res.json();
+         if (res.ok) return safeJson(res, { user: null });
          return { user: null };
-    }).then(data => setIsAuthenticated(!!data.user));
+    }).then(data => setIsAuthenticated(!!data?.user));
 
     // Fetch likes
     fetch('/api/likes')
-        .then(res => res.ok ? res.json() : [])
+        .then(res => res.ok ? safeJson(res, []) : [])
         .then((likes: any[]) => {
             const titles = new Set(likes.map(l => l.song_title));
             setLikedTrackIds(titles);
@@ -180,7 +180,8 @@ export default function Top20Page() {
       try {
         // Fetch from generic endpoint to allow geo-located results instead of US-hardcoded
         const res = await fetch('https://itunes.apple.com/rss/topsongs/limit=20/json');
-        const data: RSSFeed = await res.json();
+        const data = await safeJson<RSSFeed>(res);
+        if (!data?.feed?.entry) throw new Error('Invalid RSS data');
         
         const cleanData: TopSong[] = data.feed.entry.map((entry, idx) => {
            // Find highest res image (usually last in array)

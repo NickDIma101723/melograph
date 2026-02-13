@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import YouTube from 'react-youtube';
-import { getCache, setCache } from '@/lib/client-cache';
+import { getCache, setCache, safeJson } from '@/lib/client-cache';
 import { ArtistData } from '@/lib/artist-data';
 import STATIC_DATA from '@/lib/static-artist-data.json';
 import styles from './artists.module.scss';
@@ -128,7 +128,7 @@ export default function ArtistsClient({ initialArtists }: { initialArtists: Arti
       try {
         const res = await fetch('/api/artists-data');
         if (!res.ok) throw new Error('API Error');
-        const data = await res.json();
+        const data = await safeJson(res, []);
         
         // Only update if we have new valid data
         if (isMounted && Array.isArray(data) && data.length > 0) {
@@ -388,7 +388,7 @@ export default function ArtistsClient({ initialArtists }: { initialArtists: Arti
         // Fetch artists data (cached)
         const res = await fetch('/api/artists-data');
         if (res.ok) {
-            const data = await res.json();
+            const data = await safeJson(res, []);
             setArtists(data);
             setHasData(true);
             setCache(CACHE_KEY, data, 60);
