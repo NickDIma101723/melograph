@@ -99,7 +99,9 @@ export default function Top20Page() {
             }),
             headers: { 'Content-Type': 'application/json' }
         });
-        showToast(isLiked ? 'Removed from favorites' : 'Added to favorites', isLiked ? 'info' : 'success');
+        setTimeout(() => {
+            showToast(isLiked ? 'Removed from favorites' : 'Added to favorites', isLiked ? 'info' : 'success');
+        }, 1000);
     } catch (err) {
         console.error('Failed to toggle like');
         showToast('Failed to update favorites', 'error');
