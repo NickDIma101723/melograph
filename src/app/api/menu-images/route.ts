@@ -65,7 +65,7 @@ export async function GET() {
     },
     {
       id: 'III',
-      label: 'TOP 20',
+      label: 'TOP 100',
       href: '/top20',
       image: weekndImage
     },

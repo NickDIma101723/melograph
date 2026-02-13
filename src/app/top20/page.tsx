@@ -8,23 +8,20 @@ import gsap from 'gsap';
 import { getCache, setCache, safeJson } from '@/lib/client-cache';
 import styles from './top20.module.scss';
 import { useUI } from '@/context/UIContext';
-// iTunes RSS Interfaces
-interface RSSImage {
-  label: string;
-  attributes: { height: string };
+
+// Apple Music RSS API Interfaces
+interface AppleMusicEntry {
+  id: string;
+  name: string;
+  artistName: string;
+  artworkUrl100: string;
+  url: string;
+  genres?: { name: string }[];
 }
 
-interface RSSEntry {
-  'im:name': { label: string };
-  'im:image': RSSImage[];
-  'im:artist': { label: string };
-  link: { attributes: { href: string; title?: string; type?: string; rel?: string } }[];
-  id: { label: string; attributes: { 'im:id': string } };
-}
-
-interface RSSFeed {
+interface AppleMusicFeed {
   feed: {
-    entry: RSSEntry[];
+    results: AppleMusicEntry[];
   };
 }
 
@@ -48,6 +45,10 @@ export default function Top20Page() {
   const [isMounted, setIsMounted] = useState(false);
   const [likedTrackIds, setLikedTrackIds] = useState<Set<string>>(new Set());
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [fullscreenIndex, setFullscreenIndex] = useState<number | null>(null);
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(30);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const listRef = useRef<HTMLElement>(null);
@@ -167,8 +168,13 @@ export default function Top20Page() {
 
   // Fetch Logic
   useEffect(() => {
-    const fetchTop20 = async () => {
-      const CACHE_KEY = 'top20-data-v1';
+    const fetchTop100 = async () => {
+      // Clear any old cache keys from previous versions
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('top20-data-v1');
+        localStorage.removeItem('top100-data-v1');
+      }
+      const CACHE_KEY = 'top100-data-v2';
       const cached = getCache<TopSong[]>(CACHE_KEY);
 
       if (cached) {
@@ -178,41 +184,37 @@ export default function Top20Page() {
       }
 
       try {
-        // Fetch from generic endpoint to allow geo-located results instead of US-hardcoded
-        const res = await fetch('https://itunes.apple.com/rss/topsongs/limit=20/json');
-        const data = await safeJson<RSSFeed>(res);
-        if (!data?.feed?.entry) throw new Error('Invalid RSS data');
+        // Apple Music Top 100: Global chart (proxied to avoid CORS)
+        const res = await fetch('/api/top100');
+        const data = await safeJson<AppleMusicFeed>(res);
+        if (!data?.feed?.results) throw new Error('Invalid Apple Music data');
         
-        const cleanData: TopSong[] = data.feed.entry.map((entry, idx) => {
-           // Find highest res image (usually last in array)
-           const images = entry['im:image'];
-           let imageUrl = images[images.length - 1].label;
-           // Hack to get higher res (iTunes often returns 170x170, we want 600x600+)
-           imageUrl = imageUrl.replace('170x170', '600x600').replace('55x55', '600x600').replace('100x100', '600x600');
-
-           // Find preview url
-           const previewLink = entry.link.find(l => l.attributes.type?.includes('audio') || l.attributes.rel === 'enclosure');
+        const cleanData: TopSong[] = data.feed.results.map((entry, idx) => {
+           // Upscale artwork from 100x100 to 600x600
+           const imageUrl = entry.artworkUrl100
+             .replace('100x100bb', '600x600bb')
+             .replace('100x100', '600x600');
 
            return {
-             id: entry.id.attributes['im:id'],
+             id: entry.id,
              rank: idx + 1,
-             title: entry['im:name'].label,
-             artist: entry['im:artist'].label,
+             title: entry.name,
+             artist: entry.artistName,
              image: imageUrl,
-             previewUrl: previewLink?.attributes.href
+             previewUrl: undefined // Apple Music RSS doesn't include preview URLs
            };
         });
 
         setSongs(cleanData);
         setCache(CACHE_KEY, cleanData, 60); // Cache for 1 hour
       } catch (error) {
-        console.error('Failed to fetch Top 20', error);
+        console.error('Failed to fetch Top 100', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTop20();
+    fetchTop100();
   }, []);
 
   // Audio Control
@@ -227,28 +229,97 @@ export default function Top20Page() {
 
   const handleTimeUpdate = () => {
     if (audioRef.current) {
-      const current = audioRef.current.currentTime;
-      const duration = audioRef.current.duration || 30; // Default to 30s preview
-      setProgress((current / duration) * 100);
+      const cur = audioRef.current.currentTime;
+      const dur = audioRef.current.duration || 30;
+      setCurrentTime(cur);
+      setDuration(dur);
+      setProgress((cur / dur) * 100);
     }
   };
 
-  const togglePlay = () => {
+  const formatTime = (t: number) => {
+    const m = Math.floor(t / 60);
+    const s = Math.floor(t % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  // Play a specific song by index (fetches preview if needed)
+  const playSong = async (idx: number) => {
     if (!audioRef.current) return;
-    
+    const song = songs[idx];
+    if (!song) return;
+
+    // If different song, stop current
+    if (idx !== selectedIndex || !isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+      setProgress(0);
+      setCurrentTime(0);
+    }
+    setSelectedIndex(idx);
+
+    if (song.previewUrl) {
+      audioRef.current.src = song.previewUrl;
+      audioRef.current.play();
+      setIsPlaying(true);
+      return;
+    }
+
+    setLoadingPreview(true);
+    try {
+      const itunesRes = await fetch(`https://itunes.apple.com/lookup?id=${song.id}`);
+      const itunesData = await itunesRes.json();
+      const previewUrl = itunesData?.results?.[0]?.previewUrl;
+      if (previewUrl) {
+        setSongs(prev => prev.map((s, i) => i === idx ? { ...s, previewUrl } : s));
+        audioRef.current.src = previewUrl;
+        audioRef.current.play();
+        setIsPlaying(true);
+      } else {
+        showToast('No preview available for this song', 'info');
+      }
+    } catch {
+      showToast('Failed to load preview', 'error');
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
+  const togglePlay = async () => {
+    if (!audioRef.current) return;
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      const song = songs[selectedIndex];
-      if (song?.previewUrl) {
-        if (audioRef.current.src !== song.previewUrl) {
-            audioRef.current.src = song.previewUrl;
-        }
-        audioRef.current.play();
-        setIsPlaying(true);
-      }
+      await playSong(fullscreenIndex ?? selectedIndex);
     }
+  };
+
+  // Open fullscreen player and start 30-sec preview
+  const openFullscreen = async (idx: number) => {
+    setFullscreenIndex(idx);
+    setSelectedIndex(idx);
+    await playSong(idx);
+  };
+
+  const closeFullscreen = () => {
+    setFullscreenIndex(null);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
+
+  const fsNavigate = async (direction: 1 | -1) => {
+    const newIdx = ((fullscreenIndex ?? selectedIndex) + direction + songs.length) % songs.length;
+    await openFullscreen(newIdx);
+  };
+
+  const seekTo = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!audioRef.current) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    audioRef.current.currentTime = pct * (audioRef.current.duration || 30);
   };
 
   // 3D Tilt Logic (Copied from Artists for consistency)
@@ -313,14 +384,14 @@ export default function Top20Page() {
                animate={{ y: 0, opacity: 1 }}
                transition={{ duration: 0.6, delay: 0.5 }}
             >
-              Top 20
+              Top 100
             </motion.h1>
             <motion.p
                initial={{ opacity: 0 }}
                animate={{ opacity: 1 }} // Fully visible
                transition={{ delay: 0.7, duration: 0.6 }}
             >
-              iTunes US Charts • Updated Weekly
+              Apple Music Global Charts • Updated Daily
             </motion.p>
         </div>
         <AnimatePresence mode="wait">
@@ -332,33 +403,65 @@ export default function Top20Page() {
                   animate={{ x: 0, opacity: 1, filter: 'blur(0px)' }}
                   exit={{ opacity: 0, x: -20, filter: 'blur(5px)' }}
                   whileHover={{ x: 5, backgroundColor: 'rgba(255,255,255,0.05)' }}
-                  transition={{ delay: 0.05 * idx + 0.8, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                  transition={{ delay: Math.min(0.02 * idx + 0.3, 2), duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                   key={song.id} 
                   className={`${styles.trackItem} ${idx === selectedIndex ? styles.active : ''}`}
                   onClick={() => setSelectedIndex(idx)}
                 >
                     <span className={styles.rank}>{String(song.rank).padStart(2, '0')}</span>
+
+                    {/* Album Art Thumbnail */}
+                    <div className={styles.trackThumb}>
+                      <Image
+                        src={song.image}
+                        alt=""
+                        width={48}
+                        height={48}
+                        className={styles.trackThumbImg}
+                        draggable={false}
+                      />
+                      {/* Playing overlay on thumbnail */}
+                      {selectedIndex === idx && isPlaying && (
+                        <div className={styles.thumbPlayingOverlay}>
+                          <div className={styles.playingIndicator}>
+                            <div className={styles.bar}></div>
+                            <div className={styles.bar}></div>
+                            <div className={styles.bar}></div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     <div className={styles.trackInfo}>
                         <span className={styles.trackName}>{song.title}</span>
                         <span className={styles.artistName}>{song.artist}</span>
                     </div>
+
+                    {/* Play full song button */}
+                    <motion.button
+                        className={styles.btnPreview}
+                        onClick={(e) => { e.stopPropagation(); openFullscreen(idx); }}
+                        whileHover={{ scale: 1.05, backgroundColor: 'rgba(255,255,255,0.15)' }}
+                        whileTap={{ scale: 0.95 }}
+                    >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                        PLAY
+                    </motion.button>
 
                     <motion.button 
                         className={styles.btnLike}
                         onClick={(e) => toggleLike(e, song)}
                         initial={false}
                         animate={{ 
-                            scale: likedTrackIds.has(song.title) ? 1 : 1,
                             color: likedTrackIds.has(song.title) ? '#ef4444' : '#ffffff',
-                            opacity: (isPlaying && selectedIndex === idx) ? 0 : 1
                         }}
                         whileHover={{ scale: 1.2 }}
                         whileTap={{ scale: 0.8 }}
                         transition={{ type: "spring", stiffness: 400, damping: 17 }}
                     >
                         <svg 
-                            width="20" 
-                            height="20" 
+                            width="16" 
+                            height="16" 
                             viewBox="0 0 24 24" 
                             fill={likedTrackIds.has(song.title) ? "currentColor" : "none"} 
                             stroke="currentColor" 
@@ -369,15 +472,6 @@ export default function Top20Page() {
                             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                         </svg>
                     </motion.button>
-
-                    {/* VISUALIZER IF PLAYING THIS SONG */}
-                    {selectedIndex === idx && isPlaying && (
-                       <div className={styles.playingIndicator}>
-                          <div className={styles.bar}></div>
-                          <div className={styles.bar}></div>
-                          <div className={styles.bar}></div>
-                       </div>
-                    )}
                 </motion.div>
             ))}
         </div>
@@ -483,6 +577,139 @@ export default function Top20Page() {
              </div>
         </div>
       </main>
+
+      {/* FULLSCREEN PLAYER MODAL */}
+      <AnimatePresence>
+        {fullscreenIndex !== null && songs[fullscreenIndex] && (
+          <motion.div
+            className={styles.fsOverlay}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            style={{ '--fs-bg': `url(${songs[fullscreenIndex].image})` } as React.CSSProperties}
+          >
+            {/* Close button */}
+            <button className={styles.fsClose} onClick={closeFullscreen}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Big Album Art with play overlay */}
+            <motion.div
+              className={styles.fsArtwork}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              key={`fs-art-${songs[fullscreenIndex].id}`}
+              onClick={togglePlay}
+            >
+              <Image
+                src={songs[fullscreenIndex].image}
+                alt={songs[fullscreenIndex].title}
+                fill
+                className={styles.fsArtworkImg}
+                priority
+              />
+              {/* Play/Pause overlay */}
+              <div className={styles.fsPlayOverlay}>
+                {loadingPreview ? (
+                  <div className={styles.fsSpinner} />
+                ) : isPlaying ? (
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                  </svg>
+                ) : (
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                )}
+              </div>
+            </motion.div>
+
+            {/* Song info */}
+            <div className={styles.fsInfo}>
+              <div className={styles.fsRank}>#{String(songs[fullscreenIndex].rank).padStart(2, '0')}</div>
+              <h2 className={styles.fsTitle}>{songs[fullscreenIndex].title}</h2>
+              <h3 className={styles.fsArtist}>{songs[fullscreenIndex].artist}</h3>
+            </div>
+
+            {/* Progress bar */}
+            <div className={styles.fsProgressWrap}>
+              <span className={styles.fsTime}>{formatTime(currentTime)}</span>
+              <div className={styles.fsProgressBar} onClick={seekTo}>
+                <div className={styles.fsProgressFill} style={{ width: `${progress}%` }} />
+              </div>
+              <span className={styles.fsTime}>{formatTime(duration)}</span>
+            </div>
+
+            {/* Bottom controls */}
+            <div className={styles.fsControls}>
+              <motion.button className={styles.fsBtn} onClick={() => fsNavigate(-1)} whileTap={{ scale: 0.9 }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z" />
+                </svg>
+              </motion.button>
+
+              <motion.button
+                className={styles.fsBtnPlay}
+                onClick={togglePlay}
+                whileTap={{ scale: 0.95 }}
+              >
+                {loadingPreview ? (
+                  <div className={styles.fsSpinnerDark} />
+                ) : isPlaying ? (
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                  </svg>
+                ) : (
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                )}
+              </motion.button>
+
+              <motion.button className={styles.fsBtn} onClick={() => fsNavigate(1)} whileTap={{ scale: 0.9 }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z" />
+                </svg>
+              </motion.button>
+            </div>
+
+            {/* Like + Apple Music buttons */}
+            <div className={styles.fsActions}>
+              <motion.button
+                className={`${styles.fsActionBtn} ${likedTrackIds.has(songs[fullscreenIndex].title) ? styles.liked : ''}`}
+                onClick={(e) => toggleLike(e, songs[fullscreenIndex])}
+                whileTap={{ scale: 0.9 }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24"
+                  fill={likedTrackIds.has(songs[fullscreenIndex].title) ? 'currentColor' : 'none'}
+                  stroke="currentColor" strokeWidth="2"
+                >
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+                {likedTrackIds.has(songs[fullscreenIndex].title) ? 'Liked' : 'Like'}
+              </motion.button>
+
+              <motion.button
+                className={styles.fsActionBtn}
+                onClick={() => window.open(`https://music.apple.com/song/${songs[fullscreenIndex].id}`, '_blank')}
+                whileTap={{ scale: 0.9 }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
+                Apple Music
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
