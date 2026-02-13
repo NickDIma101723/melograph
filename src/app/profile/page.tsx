@@ -356,36 +356,30 @@ export default function ProfilePage() {
                                             </div>
 
                                             <div className={styles.songRight}>
-                                                {/* REMOVE BTN */}
-                                                {(hoveredSong === i || playingId === song.id) && (
-                                                    <div 
-                                                        onClick={(e) => handleRemoveLike(e, song)}
-                                                        style={{ 
-                                                            display: 'flex', 
-                                                            alignItems: 'center', 
-                                                            justifyContent: 'center',
-                                                            marginRight: '1rem',
-                                                            color: '#ff4444', 
-                                                            cursor: 'pointer', 
-                                                            opacity: 0.8 
-                                                        }}
-                                                        title="Remove from Liked"
-                                                    >
-                                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                            <path d="M3 6h18"/>
-                                                            <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
-                                                            <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                                                        </svg>
-                                                    </div>
-                                                )}
+                                                {/* REMOVE BTN — subtle X, visible on hover */}
+                                                <motion.button 
+                                                    onClick={(e) => handleRemoveLike(e, song)}
+                                                    className={styles.removeBtn}
+                                                    initial={false}
+                                                    animate={{ opacity: hoveredSong === i ? 0.6 : 0 }}
+                                                    whileHover={{ opacity: 1, scale: 1.1 }}
+                                                    title="Remove"
+                                                >
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                                        <line x1="18" y1="6" x2="6" y2="18"/>
+                                                        <line x1="6" y1="6" x2="18" y2="18"/>
+                                                    </svg>
+                                                </motion.button>
                                                 
-                                                {/* PLAY ICON */}
-                                                <div style={{ width: 20 }}>
+                                                {/* PLAY/PAUSE indicator */}
+                                                <div className={styles.playIndicator}>
                                                     {playingId === song.id ? (
-                                                        <span style={{ fontSize: '1.2rem', color: '#4ade80' }}>❚❚</span>
+                                                        <div className={styles.eqBars}>
+                                                            <span /><span /><span />
+                                                        </div>
                                                     ) : (
-                                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: hoveredSong === i ? 1 : 0.3 }}>
-                                                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: hoveredSong === i ? 0.7 : 0.15 }}>
+                                                            <polygon points="5 3 19 12 5 21 5 3"/>
                                                         </svg>
                                                     )}
                                                 </div>

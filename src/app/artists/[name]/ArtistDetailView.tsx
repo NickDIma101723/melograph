@@ -655,11 +655,17 @@ export default function ArtistDetailView({ data, name, monthlyListeners, themeCo
          </Link>
       </nav>
       
-      {/* Mobile Logo Independent of Nav */}
-      <div className={styles.mobileLogoContainer}>
-         <div style={{ width: '8px', height: '8px', background: '#fff' }} />
-         <span style={{ fontWeight: 800, letterSpacing: '-1px', fontSize: '1.2rem', color: '#fff' }}>MELOGRAPH</span>
-      </div>
+      {/* Mobile Logo Independent of Nav — matches Navbar logo */}
+      <Link href="/" className={styles.mobileLogoContainer}>
+         <div className={styles.mobileLogoMonolith} />
+         <div className={styles.mobileLogoTextGroup}>
+           <span className={styles.mobileLogoTitle}>MELOGRAPH</span>
+           <div className={styles.mobileLogoSubContainer}>
+             <div className={styles.mobileLogoDivider} />
+             <span className={styles.mobileLogoSubtitle}>ARCHIVE</span>
+           </div>
+         </div>
+      </Link>
         
         {/* LEFT SIDE - IMAGE */}
         <div className={styles.heroImageWrapper}>
