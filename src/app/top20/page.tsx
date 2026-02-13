@@ -269,7 +269,7 @@ export default function Top20Page() {
 
     setLoadingPreview(true);
     try {
-      const itunesRes = await fetch(`https://itunes.apple.com/lookup?id=${song.id}`);
+      const itunesRes = await fetch(`/api/itunes-lookup?id=${song.id}`);
       const itunesData = await itunesRes.json();
       const previewUrl = itunesData?.results?.[0]?.previewUrl;
       if (previewUrl) {
